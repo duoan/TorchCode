@@ -23,30 +23,15 @@ TASK = {
             "assert isinstance(loss, Tensor) and loss.dim() == 0, 'Loss must be scalar Tensor'\n"
         },
         {
-            "name": "Numeric check vs reference",
+            "name": "Numeric check vs fixed value",
             "code": "\n"
             "import torch\n"
-            "from torch import Tensor\n"
-            "\n"
-            "def _reference_ppo_loss(new_logps: Tensor, old_logps: Tensor, advantages: Tensor,\n"
-            "                        clip_ratio: float = 0.2) -> Tensor:\n"
-            "    new_logps = new_logps.view(-1)\n"
-            "    old_logps = old_logps.view(-1)\n"
-            "    advantages = advantages.view(-1)\n"
-            "    # Treat old_logps and advantages as constants\n"
-            "    old_logps_detached = old_logps.detach()\n"
-            "    adv_detached = advantages.detach()\n"
-            "    ratios = torch.exp(new_logps - old_logps_detached)\n"
-            "    unclipped = ratios * adv_detached\n"
-            "    clipped = torch.clamp(ratios, 1.0 - clip_ratio, 1.0 + clip_ratio) * adv_detached\n"
-            "    return -torch.min(unclipped, clipped).mean()\n"
-            "\n"
             "new_logps = torch.tensor([0.0, -0.2, -0.4, -0.6])\n"
             "old_logps = torch.tensor([0.0, -0.1, -0.5, -0.5])\n"
             "advantages = torch.tensor([1.0, -1.0, 0.5, -0.5])\n"
-            "loss_student = {fn}(new_logps, old_logps, advantages, clip_ratio=0.2)\n"
-            "loss_ref = _reference_ppo_loss(new_logps, old_logps, advantages, clip_ratio=0.2)\n"
-            "assert torch.allclose(loss_student, loss_ref, atol=1e-5, rtol=1e-5), 'Loss should match reference implementation numerically on a fixed example'\n"
+            "loss = {fn}(new_logps, old_logps, advantages, clip_ratio=0.2)\n"
+            "expected = torch.tensor(-0.0488)\n"
+            "assert torch.allclose(loss, expected, atol=1e-4, rtol=0), 'Loss should match the expected numeric value on the fixed example'\n"
         },
         {
             "name": "Gradient flows to new_logps only",
