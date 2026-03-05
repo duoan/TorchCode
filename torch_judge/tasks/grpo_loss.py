@@ -21,16 +21,33 @@ TASK = {
             "assert isinstance(loss, Tensor) and loss.dim() == 0, 'Loss must be scalar Tensor'\n"
         },
         {
-            "name": "Higher reward lowers loss",
+            "name": "Numeric check vs reference",
             "code": "\n"
             "import torch\n"
-            "logps = torch.tensor([0.0, 0.0, 0.0])\n"
-            "rewards_hi = torch.tensor([2.0, 1.0, 0.0])\n"
-            "rewards_lo = torch.tensor([0.0, 1.0, 2.0])\n"
-            "group_ids = torch.tensor([0, 0, 0])\n"
-            "loss_hi = {fn}(logps, rewards_hi, group_ids)\n"
-            "loss_lo = {fn}(logps, rewards_lo, group_ids)\n"
-            "assert loss_hi < loss_lo, 'Better rewards should yield smaller loss when logps are fixed'\n"
+            "from torch import Tensor\n"
+            "\n"
+            "def _reference_grpo_loss(logps: Tensor, rewards: Tensor, group_ids: Tensor, eps: float = 1e-5) -> Tensor:\n"
+            "    # Same semantics as the reference solution: per-group z-score then -E[A_i * logp_i].\n"
+            "    logps = logps.view(-1)\n"
+            "    rewards = rewards.view(-1)\n"
+            "    group_ids = group_ids.view(-1)\n"
+            "    unique_ids = group_ids.unique()\n"
+            "    advantages = torch.empty_like(rewards)\n"
+            "    for gid in unique_ids:\n"
+            "        mask = group_ids == gid\n"
+            "        r_g = rewards[mask]\n"
+            "        mean_g = r_g.mean()\n"
+            "        std_g = r_g.std(unbiased=False)\n"
+            "        advantages[mask] = (r_g - mean_g) / (std_g + eps)\n"
+            "    advantages_detached = advantages.detach()\n"
+            "    return -(advantages_detached * logps).mean()\n"
+            "\n"
+            "logps = torch.tensor([0.0, -0.5, -1.0, -1.5])\n"
+            "rewards = torch.tensor([1.0, 0.8, 0.2, 0.0])\n"
+            "group_ids = torch.tensor([0, 0, 1, 1])\n"
+            "loss_student = {fn}(logps, rewards, group_ids)\n"
+            "loss_ref = _reference_grpo_loss(logps, rewards, group_ids)\n"
+            "assert torch.allclose(loss_student, loss_ref, atol=1e-5, rtol=1e-5), 'Loss should match reference implementation numerically on a fixed example'\n"
         },
         {
             "name": "Gradient flows to logps only",
