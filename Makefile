@@ -14,7 +14,6 @@ CONTAINER ?= $(shell \
 	else \
 		echo "docker"; \
 	fi)
-IMAGE ?= ghcr.io/duoan/torchcode:latest
 
 .PHONY: run run-build stop clean setup-local badges
 
@@ -22,10 +21,17 @@ run:
 	@echo "Using compose backend: $(COMPOSE)"
 	@echo "Pulling prebuilt image (if available)..."
 	@pull_status=0; \
+	images="$$( $(COMPOSE) config --images 2>/dev/null )"; \
 	$(COMPOSE) pull || pull_status=$$?; \
-	if $(CONTAINER) image inspect $(IMAGE) >/dev/null 2>&1; then \
+	missing_images=""; \
+	for image in $$images; do \
+		if ! $(CONTAINER) image inspect "$$image" >/dev/null 2>&1; then \
+			missing_images="$$missing_images $$image"; \
+		fi; \
+	done; \
+	if [ -n "$$images" ] && [ -z "$$missing_images" ]; then \
 		if [ $$pull_status -ne 0 ]; then \
-			echo "Prebuilt image pull failed, but a local copy is available. Reusing $(IMAGE)."; \
+			echo "Prebuilt image pull failed, but local compose images are available. Reusing them."; \
 		fi; \
 		$(COMPOSE) up -d --no-build; \
 	else \
