@@ -88,11 +88,15 @@ hint("relu")       # show a hint
 docker run -p 8888:8888 -e PORT=8888 ghcr.io/duoan/torchcode:latest
 ```
 
+If the registry image is unavailable for your platform, use Option 2 instead. This is the common path on Apple Silicon / `arm64`.
+
 ### Option 2 — Build locally
 
 ```bash
 make run
 ```
+
+`make run` will try the prebuilt image first and automatically fall back to a local build when needed.
 
 Open **<http://localhost:8888>** — that's it. Works with both Docker and Podman (auto-detected).
 
