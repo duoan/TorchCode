@@ -2,7 +2,7 @@
 
 TASK = {
     "title": "Multi-Head Cross-Attention",
-    "difficulty": "Medium",
+    "difficulty": "Hard",
     "function_name": "MultiHeadCrossAttention",
     "hint": "Q from decoder (x_q), K/V from encoder (x_kv). Project, reshape to multi-head, compute scaled dot-product attention (no causal mask). Concat heads and project output.",
     "tests": [
