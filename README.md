@@ -100,6 +100,25 @@ make run
 
 Open **<http://localhost:8888>** — that's it. Works with both Docker and Podman (auto-detected).
 
+### Option 3 — Standalone Web UI (Next.js + FastAPI)
+
+For a modern, standalone coding experience with an integrated IDE and dual-pane layout:
+
+1. **Start Backend (FastAPI):**
+   ```bash
+   pip install -r api/requirements.txt
+   python -m uvicorn api.main:app --port 8000 --reload
+   ```
+2. **Start Frontend (Next.js):**
+   ```bash
+   cd web
+   npm install
+   npm run dev
+   ```
+3. Open **<http://localhost:3000>** in your browser.
+
+![TorchCode UI Preview](assets/ui_preview.png)
+
 ---
 
 ## 📋 Problem Set
