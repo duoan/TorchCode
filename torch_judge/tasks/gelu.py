@@ -4,7 +4,7 @@ TASK = {
     "title": "GELU Activation",
     "difficulty": "Easy",
     "function_name": "my_gelu",
-    "hint": "Exact: x * 0.5 * (1 + erf(x / sqrt(2))). Or approximate: 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3))).",
+    "hint": "Exact: $x \\cdot 0.5 \\cdot (1 + \\text{erf}(x / \\sqrt{2}))$. Or approximate: $0.5x(1+\\tanh(\\sqrt{2/\\pi}(x+0.044715x^3)))$.",
     "tests": [
         {
             "name": "Matches F.gelu",

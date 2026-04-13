@@ -4,7 +4,7 @@ TASK = {
     "title": "Adam Optimizer",
     "difficulty": "Medium",
     "function_name": "MyAdam",
-    "hint": "Track m (1st moment) and v (2nd moment). m = beta1*m + (1-beta1)*grad, v = beta2*v + (1-beta2)*grad^2. Bias correct: m_hat = m/(1-beta1^t). Update: p -= lr * m_hat / (sqrt(v_hat) + eps).",
+    "hint": "Track $m$ (1st moment) and $v$ (2nd moment). $m = \\beta_1 m + (1-\\beta_1)\\nabla$, $v = \\beta_2 v + (1-\\beta_2)\\nabla^2$. Bias correct: $\\hat{m} = m/(1-\\beta_1^t)$, $\\hat{v} = v/(1-\\beta_2^t)$. Update: $p \\leftarrow p - \\text{lr} \\cdot \\hat{m} / (\\sqrt{\\hat{v}} + \\epsilon)$.",
     "tests": [
         {
             "name": "Parameters change after step",

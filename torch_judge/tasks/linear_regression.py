@@ -4,7 +4,7 @@ TASK = {
     "title": "Linear Regression",
     "difficulty": "Medium",
     "function_name": "LinearRegression",
-    "hint": "Closed-form: augment X with ones column, solve w = (X^T X)^{-1} X^T y via torch.linalg.lstsq. Gradient descent: grad_w = (2/N) * X^T @ (pred - y), update w -= lr * grad_w. nn.Linear: create nn.Linear(D, 1), use MSELoss + optimizer.step() loop.",
+    "hint": "Closed-form: augment $X$ with ones column, solve $w = (X^T X)^{-1} X^T y$ via `torch.linalg.lstsq`. Gradient descent: $\\nabla w = \\frac{2}{N} X^T (\\hat{y} - y)$, update $w \\leftarrow w - \\text{lr} \\cdot \\nabla w$. `nn.Linear`: create `nn.Linear(D, 1)`, use `MSELoss` + `optimizer.step()` loop.",
     "tests": [
         {
             "name": "Closed-form returns correct shapes",

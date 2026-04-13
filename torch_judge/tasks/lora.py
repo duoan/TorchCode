@@ -4,7 +4,7 @@ TASK = {
     "title": "LoRA (Low-Rank Adaptation)",
     "difficulty": "Medium",
     "function_name": "LoRALinear",
-    "hint": "Freeze base linear. Add lora_A (rank, in) and lora_B (out, rank) as Parameters. B init to zeros. output = linear(x) + (x @ A^T @ B^T) * (alpha/rank).",
+    "hint": "Freeze base linear. Add `lora_A` (rank, in) and `lora_B` (out, rank) as Parameters. B init to zeros. $\\text{output} = \\text{linear}(x) + (x A^T B^T) \\cdot (\\alpha/r)$.",
     "tests": [
         {
             "name": "Base weights frozen",

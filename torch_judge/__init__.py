@@ -1,12 +1,12 @@
-"""TorchCode — PyTorch 刷题判定引擎。在 Jupyter Notebook 中使用。
+"""TorchCode — PyTorch practice engine. Used in Jupyter Notebooks.
 
-Usage:
-    from torch_judge import check, status
+Example:
+    from torch_judge import status, check
 
-    # 查看所有题目进度
+    # View progress for all tasks
     status()
 
-    # 实现完函数后，运行判定
+    # After implementing the function, run the judge
     check("relu")
 """
 

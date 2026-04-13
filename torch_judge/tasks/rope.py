@@ -4,7 +4,7 @@ TASK = {
     "title": "Rotary Position Embedding (RoPE)",
     "difficulty": "Hard",
     "function_name": "apply_rope",
-    "hint": "Split into pairs (x_even, x_odd). Compute angles = pos * 1/(10000^(2i/d)). Rotate: [x_e*cos - x_o*sin, x_e*sin + x_o*cos]. Stack and flatten.",
+    "hint": "Split into pairs $(x_{\\text{even}}, x_{\\text{odd}})$. Compute $\\theta = \\text{pos} \\cdot 1/(10000^{2i/d})$. Rotate: $[x_e\\cos\\theta - x_o\\sin\\theta, x_e\\sin\\theta + x_o\\cos\\theta]$. Stack and flatten.",
     "tests": [
         {
             "name": "Output shapes",

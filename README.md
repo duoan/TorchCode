@@ -16,7 +16,7 @@ pinned: false
 
 Practice implementing operators and architectures from scratch — the exact skills top ML teams test for.
 
-*Like LeetCode, but for tensors. Self-hosted. Jupyter-based. Instant feedback.*
+*An interactive coding platform, but for tensors. Self-hosted. Jupyter-based. Instant feedback.*
 
 [![PyTorch](https://img.shields.io/badge/PyTorch-ee4c2c?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org)
 [![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=for-the-badge&logo=jupyter&logoColor=white)](https://jupyter.org)

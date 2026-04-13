@@ -4,7 +4,7 @@ TASK = {
     "title": "Softmax Attention",
     "difficulty": "Hard",
     "function_name": "scaled_dot_product_attention",
-    "hint": "scores = Q @ K^T / sqrt(d_k), then softmax(scores, dim=-1) @ V. Use torch.bmm for batched matmul.",
+    "hint": "$\\text{scores} = (Q K^T) / \\sqrt{d_k}$, then $\\text{softmax}(\\text{scores}, \\text{dim}=-1) V$. Use `torch.bmm` for batched matmul.",
     "tests": [
         {
             "name": "Output shape",

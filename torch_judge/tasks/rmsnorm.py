@@ -4,7 +4,7 @@ TASK = {
     "title": "Implement RMSNorm",
     "difficulty": "Medium",
     "function_name": "rms_norm",
-    "hint": "RMS(x) = sqrt(mean(x^2) + eps). RMSNorm(x) = x / RMS(x) * weight. Simpler than LayerNorm — no mean subtraction.",
+    "hint": "$\\text{RMS}(x) = \\sqrt{\\text{mean}(x^2) + \\epsilon}$. $\\text{RMSNorm}(x) = \\frac{x}{\\text{RMS}(x)} \\cdot \\text{weight}$. Simpler than LayerNorm — no mean subtraction.",
     "tests": [
         {
             "name": "Basic behavior",

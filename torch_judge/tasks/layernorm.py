@@ -4,7 +4,7 @@ TASK = {
     "title": "Implement LayerNorm",
     "difficulty": "Medium",
     "function_name": "my_layer_norm",
-    "hint": "Normalize over the last dim: (x - mean) / sqrt(var + eps), then scale by gamma and shift by beta.",
+    "hint": "Normalize over the last dim: $(x - \\mu) / \\sqrt{\\sigma^2 + \\epsilon}$, then scale by $\\gamma$ and shift by $\\beta$.",
     "tests": [
         {
             "name": "Shape and basic behavior",
