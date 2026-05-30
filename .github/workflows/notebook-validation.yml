@@ -1,0 +1,37 @@
+name: Validate notebooks
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "templates/**/*.ipynb"
+      - "solutions/**/*.ipynb"
+      - "scripts/validate_notebooks.py"
+      - ".github/workflows/notebook-validation.yml"
+  push:
+    branches: [master]
+    paths:
+      - "templates/**/*.ipynb"
+      - "solutions/**/*.ipynb"
+      - "scripts/validate_notebooks.py"
+      - ".github/workflows/notebook-validation.yml"
+  workflow_dispatch:
+
+jobs:
+  validate-notebooks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install nbformat
+        run: pip install nbformat
+
+      - name: Validate notebooks
+        run: python scripts/validate_notebooks.py

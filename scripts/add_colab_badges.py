@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add 'Open in Colab' badges to all template and solution notebooks."""
+"""Add 'Open in Colab' links to all template and solution notebooks."""
 
 import json
 from pathlib import Path
@@ -9,7 +9,6 @@ BRANCH = "master"
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
 SOLUTIONS_DIR = ROOT / "solutions"
-BADGE_IMG = "https://colab.research.google.com/assets/colab-badge.svg"
 
 
 def colab_url(filename: str, folder: str) -> str:
@@ -19,8 +18,8 @@ def colab_url(filename: str, folder: str) -> str:
     )
 
 
-def badge_markdown(filename: str, folder: str) -> str:
-    return f"[![Open In Colab]({BADGE_IMG})]({colab_url(filename, folder)})"
+def colab_markdown(filename: str, folder: str) -> str:
+    return f"[Open in Colab]({colab_url(filename, folder)})"
 
 
 def process_notebook(path: Path, folder: str) -> bool:
@@ -33,11 +32,11 @@ def process_notebook(path: Path, folder: str) -> bool:
 
     source_lines = cells[0]["source"]
     flat = "".join(source_lines) if isinstance(source_lines, list) else source_lines
-    if "colab-badge.svg" in flat:
+    if "colab.research.google.com/github/" in flat:
         return False
 
-    badge = badge_markdown(path.name, folder)
-    cells[0]["source"] = [badge + "\n\n"] + (
+    link = colab_markdown(path.name, folder)
+    cells[0]["source"] = [link + "\n\n"] + (
         source_lines if isinstance(source_lines, list) else [source_lines]
     )
 
