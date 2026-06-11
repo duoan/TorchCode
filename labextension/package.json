@@ -36,5 +36,8 @@
   "jupyterlab": {
     "extension": true,
     "outputDir": "torchcode_labext/labextension"
+  },
+  "resolutions": {
+    "license-webpack-plugin@^4.0.2": "patch:license-webpack-plugin@npm%3A4.0.2#./.yarn/patches/license-webpack-plugin-npm-4.0.2-1e0a964980.patch"
   }
 }

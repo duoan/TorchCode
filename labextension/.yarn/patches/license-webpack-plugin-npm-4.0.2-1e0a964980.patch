@@ -1,0 +1,17 @@
+diff --git a/dist/WebpackInnerModuleIterator.js b/dist/WebpackInnerModuleIterator.js
+index 282271e7411aa6221e408befb4ecfb259edc5896..b55935ad110758a1be09c614fbc1fdc4ed97133e 100644
+--- a/dist/WebpackInnerModuleIterator.js
++++ b/dist/WebpackInnerModuleIterator.js
+@@ -58,7 +58,11 @@ var WebpackInnerModuleIterator = /** @class */ (function () {
+             return tokens[tokens.length - 1];
+         }
+         if (filename.indexOf('provide module') === 0) {
+-            return filename.split('=')[1].trim();
++            // Newer webpack emits self-provided Module Federation shares as
++            // "provide module (default) name@version|/path" (pipe separator, no '='),
++            // so split('=')[1] is undefined. Skip those instead of crashing on .trim().
++            var providedFile = filename.split('=')[1];
++            return providedFile == null ? null : providedFile.trim();
+         }
+         if (filename.indexOf('consume-shared-module') === 0) {
+             var tokens = filename.split('|');

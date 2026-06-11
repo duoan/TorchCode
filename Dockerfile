@@ -33,6 +33,9 @@ FROM build-base AS labext-builder
 # Copy manifests first so dependency install is cacheable between source edits.
 WORKDIR /src/labextension
 COPY labextension/.yarnrc.yml labextension/package.json labextension/pyproject.toml labextension/tsconfig.json labextension/install.json ./
+# Yarn resolutions reference a local patch (license-webpack-plugin fix); it must
+# exist before `jlpm install` resolves dependencies.
+COPY labextension/.yarn ./.yarn
 RUN jlpm install
 
 COPY labextension/style ./style
