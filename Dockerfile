@@ -55,10 +55,13 @@ WORKDIR /app
 
 COPY --from=judge-builder /tmp/wheels /tmp/wheels
 COPY --from=labext-builder /tmp/wheels /tmp/wheels
+# torch >=2 treats NumPy as optional; without it `import torch` prints a
+# "Failed to initialize NumPy" warning and tensor<->numpy interop is disabled.
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
       torch --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir \
+      numpy \
       /tmp/wheels/*.whl && \
     rm -rf /tmp/wheels
 
