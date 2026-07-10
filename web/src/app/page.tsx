@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
+import React, { useState, useEffect, useRef } from 'react';
+import Editor, { OnMount } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -58,6 +59,17 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'problem' | 'results'>('problem');
   const [solvedTasks, setSolvedTasks] = useState<Record<string, boolean>>({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  const handleEditorMount: OnMount = (editorInstance) => {
+    editorRef.current = editorInstance;
+  };
+
+  // Fallback for Allotment sash drags: re-measure Monaco's layout in case the
+  // container size changes in a way automaticLayout's ResizeObserver misses.
+  const handlePaneSizesChange = () => {
+    editorRef.current?.layout();
+  };
 
   useEffect(() => {
     // Load solved tasks from local storage
@@ -235,13 +247,14 @@ export default function Home() {
       </nav>
 
       {/* Main Split Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <Allotment
           defaultSizes={[100, 100]}
           minSize={300}
+          onChange={handlePaneSizesChange}
         >
           {/* Left Pane: Problem Description / Results Tab */}
-          <div className="h-full flex flex-col border-r border-[#404040] bg-[#1e1e1e]">
+          <div className="h-full min-h-0 min-w-0 flex flex-col border-r border-[#404040] bg-[#1e1e1e]">
             {/* Tabs */}
           <div className="flex border-b border-[#404040] bg-[#252526]">
             <button 
@@ -414,18 +427,19 @@ export default function Home() {
           </div>
 
           {/* Right Pane: Code Editor */}
-          <div className="h-full flex flex-col bg-[#1e1e1e]">
+          <div className="h-full min-h-0 min-w-0 flex flex-col bg-[#1e1e1e]">
             <div className="flex items-center px-4 py-2 bg-[#252526] border-b border-[#404040] text-sm text-gray-400">
               <span className="font-medium text-gray-300 flex items-center">
                 <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Python (PyTorch)
               </span>
             </div>
-            <div className="flex-1 pt-4">
+            <div className="flex-1 min-h-0 min-w-0">
               <Editor
                 height="100%"
                 language="python"
                 theme="vs-dark"
                 value={code}
+                onMount={handleEditorMount}
                 onChange={(value) => {
                   const newCode = value || "";
                   setCode(newCode);
