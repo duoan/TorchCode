@@ -50,6 +50,90 @@ TASK_ID_ALIASES = {
     "multihead_attention": "mha",
 }
 
+
+def parse_notebook_solution(filepath: str) -> dict:
+    """
+    Parses a solution Jupyter Notebook into an ordered list of renderable cells.
+
+    Returns {"cells": [{"type": "markdown"|"code", "source": str}, ...]},
+    skipping empty cells and Colab-install boilerplate.
+    """
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            nb = json.load(f)
+
+        cells = []
+        for cell in nb.get("cells", []):
+            cell_type = cell.get("cell_type")
+            if cell_type not in ("markdown", "code"):
+                continue
+
+            source_lines = cell.get("source", [])
+            if cell_type == "markdown":
+                # Drop the Colab badge line, same as the template parser.
+                source_lines = [
+                    line for line in source_lines
+                    if "![Open In Colab]" not in line
+                ]
+
+            source = "".join(source_lines).strip()
+            if not source:
+                continue
+
+            # Skip the Colab-only "pip install torch-judge" bootstrap cell.
+            if cell_type == "code" and "google.colab" in source:
+                continue
+
+            cells.append({"type": cell_type, "source": source})
+
+        return {"cells": cells}
+    except Exception as e:
+        print(f"Error parsing solution {filepath}: {e}")
+        return {"cells": []}
+
+
+def _extract_check_id(cells):
+    """Return the argument of the notebook's check("<id>") call, if present."""
+    for cell in cells:
+        if cell["type"] != "code":
+            continue
+        match = re.search(r"check\(\s*[\"']([^\"']+)[\"']", cell["source"])
+        if match:
+            return match.group(1)
+    return None
+
+
+def get_all_solutions(solutions_dir: str = "../solutions") -> dict:
+    """
+    Returns a dict mapping task_id -> {"cells": [...]} for every solution notebook.
+
+    The task_id is the argument of the notebook's check("<id>") call (the
+    authoritative judge id, matching torch_judge.tasks), which is more reliable
+    than the filename slug (e.g. 06_multihead_attention_solution.ipynb -> "mha").
+    Falls back to the filename slug if no check(...) call is found.
+    """
+    solutions = {}
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    solutions_path = os.path.join(base_dir, solutions_dir)
+
+    for filepath in glob.glob(os.path.join(solutions_path, "*.ipynb")):
+        parsed = parse_notebook_solution(filepath)
+        task_id = _extract_check_id(parsed["cells"])
+
+        if not task_id:
+            filename = os.path.basename(filepath)
+            match = re.match(r"^\d+_(.+)_solution\.ipynb$", filename)
+            if not match:
+                continue
+            task_id = match.group(1)
+
+        solutions[task_id] = parsed
+
+    return solutions
+
+
+
 def get_all_templates(templates_dir: str = "../templates") -> dict:
     """
     Returns a dictionary mapping task_ids to their extracted template data.

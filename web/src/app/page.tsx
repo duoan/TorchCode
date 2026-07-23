@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { Play, RotateCcw, ChevronDown, Check, X, AlertCircle } from 'lucide-react';
+import { Play, RotateCcw, ChevronDown, Check, X, AlertCircle, BookOpen, Copy } from 'lucide-react';
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
 
@@ -37,6 +37,11 @@ type TestResult = {
   stderr: string;
 };
 
+type SolutionCell = {
+  type: 'markdown' | 'code';
+  source: string;
+};
+
 type SubmissionResponse = {
   success: boolean;
   error?: string;
@@ -49,6 +54,38 @@ type SubmissionResponse = {
   stderr: string;
 };
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 flex items-center px-2 py-1 rounded text-xs text-gray-400 bg-[#2d2d2d] hover:bg-[#3c3c3c] hover:text-gray-200 transition-colors"
+      title="Copy to clipboard"
+    >
+      {copied ? (
+        <>
+          <Check className="w-3 h-3 mr-1 text-green-500" /> Copied
+        </>
+      ) : (
+        <>
+          <Copy className="w-3 h-3 mr-1" /> Copy
+        </>
+      )}
+    </button>
+  );
+}
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -56,7 +93,9 @@ export default function Home() {
   const [code, setCode] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState<SubmissionResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'problem' | 'results'>('problem');
+  const [activeTab, setActiveTab] = useState<'problem' | 'results' | 'solution'>('problem');
+  const [solution, setSolution] = useState<SolutionCell[] | null>(null);
+  const [solutionLoading, setSolutionLoading] = useState(false);
   const [solvedTasks, setSolvedTasks] = useState<Record<string, boolean>>({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -104,11 +143,28 @@ export default function Home() {
           const savedCode = localStorage.getItem(`torchcode_code_${selectedTaskId}`);
           setCode(savedCode !== null ? savedCode : data.initial_code);
           setResults(null);
+          setSolution(null);
           setActiveTab('problem');
         })
         .catch(err => console.error("Failed to load task details", err));
     }
   }, [selectedTaskId]);
+
+  useEffect(() => {
+    // Lazily load the reference solution the first time the tab is opened
+    // for the current task.
+    if (activeTab === 'solution' && selectedTaskId && solution === null && !solutionLoading) {
+      setSolutionLoading(true);
+      fetch(`${API_BASE}/tasks/${selectedTaskId}/solution`)
+        .then(res => (res.ok ? res.json() : { cells: [] }))
+        .then((data: { cells: SolutionCell[] }) => setSolution(data.cells || []))
+        .catch(err => {
+          console.error("Failed to load solution", err);
+          setSolution([]);
+        })
+        .finally(() => setSolutionLoading(false));
+    }
+  }, [activeTab, selectedTaskId, solution, solutionLoading]);
 
   const handleRunCode = async () => {
     if (!selectedTaskId) return;
@@ -274,10 +330,17 @@ export default function Home() {
                 </span>
               )}
             </button>
+            <button
+              className={`px-6 py-3 font-medium transition-colors flex items-center ${activeTab === 'solution' ? 'text-white border-b-2 border-purple-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
+              onClick={() => setActiveTab('solution')}
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Solution
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">
-            {activeTab === 'problem' ? (
+            {activeTab === 'problem' && (
               <div className="markdown-body">
                 {taskDetails ? (
                   <>
@@ -325,7 +388,9 @@ export default function Home() {
                   <div className="text-gray-500">Loading problem...</div>
                 )}
               </div>
-            ) : (
+            )}
+
+            {activeTab === 'results' && (
               <div className="results-pane">
                 {isSubmitting ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
@@ -419,6 +484,43 @@ export default function Home() {
                   <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-4 mt-20">
                     <Play className="w-16 h-16 text-[#333333]" />
                     <p>Run your code to see results here.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'solution' && (
+              <div className="solution-pane">
+                {solutionLoading ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    Loading solution...
+                  </div>
+                ) : solution && solution.length > 0 ? (
+                  <div className="space-y-4">
+                    {solution.map((cell, idx) =>
+                      cell.type === 'markdown' ? (
+                        <div key={idx} className="markdown-body">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                          >
+                            {cell.source}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div key={idx} className="relative bg-[#1e1e1e] rounded-lg border border-[#404040] overflow-hidden">
+                          <CopyButton text={cell.source} />
+                          <pre className="p-4 pt-10 text-sm font-mono text-gray-300 overflow-x-auto whitespace-pre">
+                            {cell.source}
+                          </pre>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-4 mt-20">
+                    <BookOpen className="w-16 h-16 text-[#333333]" />
+                    <p>No reference solution for this exercise yet.</p>
                   </div>
                 )}
               </div>
