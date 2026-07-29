@@ -45,6 +45,11 @@ def parse_notebook_template(filepath: str) -> dict:
             "initial_code": "# Error loading template code."
         }
 
+# Template filenames whose stem doesn't match their torch_judge task module name
+TASK_ID_ALIASES = {
+    "multihead_attention": "mha",
+}
+
 def get_all_templates(templates_dir: str = "../templates") -> dict:
     """
     Returns a dictionary mapping task_ids to their extracted template data.
@@ -65,6 +70,7 @@ def get_all_templates(templates_dir: str = "../templates") -> dict:
         match = re.match(r"^\d+_(.+)\.ipynb$", filename)
         if match:
             task_id = match.group(1)
+            task_id = TASK_ID_ALIASES.get(task_id, task_id)
             templates[task_id] = parse_notebook_template(filepath)
             
     return templates
