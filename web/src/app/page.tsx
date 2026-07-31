@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { Play, RotateCcw, ChevronDown, Check, X, AlertCircle, BookOpen, Copy } from 'lucide-react';
+import { Play, RotateCcw, ChevronDown, Check, X, AlertCircle, BookOpen, Copy, FileText, ListChecks } from 'lucide-react';
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
 
@@ -70,7 +70,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-2 right-2 flex items-center px-2 py-1 rounded text-xs text-gray-400 bg-[#2d2d2d] hover:bg-[#3c3c3c] hover:text-gray-200 transition-colors"
+      className="absolute top-2 right-2 z-10 flex items-center px-2 py-1 rounded text-xs text-gray-400 bg-[#2d2d2d] hover:bg-[#3c3c3c] hover:text-gray-200 transition-colors"
       title="Copy to clipboard"
     >
       {copied ? (
@@ -83,6 +83,55 @@ function CopyButton({ text }: { text: string }) {
         </>
       )}
     </button>
+  );
+}
+
+const SOLUTION_LINE_HEIGHT = 22;
+const SOLUTION_EDITOR_PADDING = 40;
+
+function SolutionCodeCell({ source }: { source: string }) {
+  const lineCount = Math.max(source.split("\n").length, 1);
+  const height = Math.min(
+    Math.max(lineCount * SOLUTION_LINE_HEIGHT + SOLUTION_EDITOR_PADDING, 72),
+    640
+  );
+
+  return (
+    <div className="relative rounded-lg border border-[#404040] overflow-hidden bg-[#1e1e1e]">
+      <div className="absolute top-2 left-3 z-10 text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+        Python
+      </div>
+      <CopyButton text={source} />
+      <Editor
+        height={height}
+        language="python"
+        theme="vs-dark"
+        value={source}
+        options={{
+          readOnly: true,
+          domReadOnly: true,
+          minimap: { enabled: false },
+          fontSize: 13,
+          fontFamily: "'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace",
+          lineHeight: SOLUTION_LINE_HEIGHT,
+          padding: { top: 28 },
+          scrollBeyondLastLine: false,
+          lineNumbers: "on",
+          renderLineHighlight: "none",
+          overviewRulerLanes: 0,
+          hideCursorInOverviewRuler: true,
+          overviewRulerBorder: false,
+          contextmenu: false,
+          folding: false,
+          scrollbar: {
+            vertical: lineCount > 28 ? "auto" : "hidden",
+            horizontal: "auto",
+            handleMouseWheel: lineCount > 28,
+          },
+          wordWrap: "off",
+        }}
+      />
+    </div>
   );
 }
 
@@ -314,15 +363,17 @@ export default function Home() {
             {/* Tabs */}
           <div className="flex border-b border-[#404040] bg-[#252526]">
             <button 
-              className={`px-6 py-3 font-medium transition-colors ${activeTab === 'problem' ? 'text-white border-b-2 border-orange-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
+              className={`px-6 py-3 font-medium transition-colors flex items-center ${activeTab === 'problem' ? 'text-white border-b-2 border-orange-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
               onClick={() => setActiveTab('problem')}
             >
+              <FileText className="w-4 h-4 mr-2" />
               Problem
             </button>
             <button 
-              className={`px-6 py-3 font-medium transition-colors ${activeTab === 'results' ? 'text-white border-b-2 border-green-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
+              className={`px-6 py-3 font-medium transition-colors flex items-center ${activeTab === 'results' ? 'text-white border-b-2 border-green-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
               onClick={() => setActiveTab('results')}
             >
+              <ListChecks className="w-4 h-4 mr-2" />
               Test Results
               {results && (
                 <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${results.success ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
@@ -341,7 +392,7 @@ export default function Home() {
 
           <div className="flex-1 overflow-y-auto p-6">
             {activeTab === 'problem' && (
-              <div className="markdown-body">
+              <div className="problem-pane markdown-body">
                 {taskDetails ? (
                   <>
                     <h1 className="text-2xl font-semibold mb-4 text-white">{taskDetails.title}</h1>
@@ -496,7 +547,7 @@ export default function Home() {
                     Loading solution...
                   </div>
                 ) : solution && solution.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     {solution.map((cell, idx) =>
                       cell.type === 'markdown' ? (
                         <div key={idx} className="markdown-body">
@@ -508,12 +559,7 @@ export default function Home() {
                           </ReactMarkdown>
                         </div>
                       ) : (
-                        <div key={idx} className="relative bg-[#1e1e1e] rounded-lg border border-[#404040] overflow-hidden">
-                          <CopyButton text={cell.source} />
-                          <pre className="p-4 pt-10 text-sm font-mono text-gray-300 overflow-x-auto whitespace-pre">
-                            {cell.source}
-                          </pre>
-                        </div>
+                        <SolutionCodeCell key={idx} source={cell.source} />
                       )
                     )}
                   </div>
