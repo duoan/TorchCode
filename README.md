@@ -30,7 +30,7 @@ Practice implementing operators and architectures from scratch — the exact ski
 ![Problems](https://img.shields.io/badge/problems-41-orange?style=flat-square)
 ![GPU](https://img.shields.io/badge/GPU-not%20required-brightgreen?style=flat-square)
 
-[![Star History Chart](https://api.star-history.com/svg?repos=duoan/TorchCode&type=Date)](https://star-history.com/#duoan/TorchCode&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=duoan/TorchCode&type=Date)](https://star-history.dera.page/#duoan/TorchCode&Date)
 
 </div>
 
