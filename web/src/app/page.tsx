@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import Editor, { OnMount } from '@monaco-editor/react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Editor, { OnChange, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -14,6 +14,21 @@ import "allotment/dist/style.css";
 
 const API_BASE = "http://localhost:8000/api";
 
+// Declared once at module scope so the prop keeps a stable identity: the Monaco
+// wrapper re-runs editor.updateOptions() whenever this object changes.
+const EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
+  minimap: { enabled: false },
+  fontSize: 14,
+  fontFamily: "'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace",
+  lineHeight: 24,
+  padding: { top: 16 },
+  scrollBeyondLastLine: false,
+  smoothScrolling: true,
+  cursorBlinking: "smooth",
+  cursorSmoothCaretAnimation: "on",
+  formatOnPaste: true,
+};
+
 type Task = {
   id: string;
   title: string;
@@ -24,6 +39,13 @@ type TaskDetails = Task & {
   hint: string;
   description: string;
   initial_code: string;
+};
+
+// Seeds the editor when the task changes. Both fields are set together so the
+// model path and its initial contents can never disagree.
+type EditorDoc = {
+  taskId: string;
+  value: string;
 };
 
 type TestResult = {
@@ -53,7 +75,7 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null);
-  const [code, setCode] = useState<string>("");
+  const [editorDoc, setEditorDoc] = useState<EditorDoc | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState<SubmissionResponse | null>(null);
   const [activeTab, setActiveTab] = useState<'problem' | 'results'>('problem');
@@ -64,6 +86,15 @@ export default function Home() {
   const handleEditorMount: OnMount = (editorInstance) => {
     editorRef.current = editorInstance;
   };
+
+  const handleEditorChange: OnChange = useCallback(
+    (value) => {
+      if (selectedTaskId) {
+        localStorage.setItem(`torchcode_code_${selectedTaskId}`, value ?? "");
+      }
+    },
+    [selectedTaskId]
+  );
 
   // Fallback for Allotment sash drags: re-measure Monaco's layout in case the
   // container size changes in a way automaticLayout's ResizeObserver misses.
@@ -102,7 +133,10 @@ export default function Home() {
         .then((data: TaskDetails) => {
           setTaskDetails(data);
           const savedCode = localStorage.getItem(`torchcode_code_${selectedTaskId}`);
-          setCode(savedCode !== null ? savedCode : data.initial_code);
+          setEditorDoc({
+            taskId: selectedTaskId,
+            value: savedCode !== null ? savedCode : data.initial_code,
+          });
           setResults(null);
           setActiveTab('problem');
         })
@@ -121,7 +155,7 @@ export default function Home() {
       const res = await fetch(`${API_BASE}/submit/${selectedTaskId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code: editorRef.current?.getValue() ?? "" }),
       });
       const data: SubmissionResponse = await res.json();
       setResults(data);
@@ -152,8 +186,10 @@ export default function Home() {
 
   const handleReset = () => {
     if (taskDetails && selectedTaskId) {
+      // setValue() notifies onChange synchronously and that re-saves the buffer,
+      // so clear the saved entry afterwards to leave the task pristine.
+      editorRef.current?.setValue(taskDetails.initial_code);
       localStorage.removeItem(`torchcode_code_${selectedTaskId}`);
-      setCode(taskDetails.initial_code);
       setResults(null);
     }
   };
@@ -434,32 +470,25 @@ export default function Home() {
               </span>
             </div>
             <div className="flex-1 min-h-0 min-w-0">
-              <Editor
-                height="100%"
-                language="python"
-                theme="vs-dark"
-                value={code}
-                onMount={handleEditorMount}
-                onChange={(value) => {
-                  const newCode = value || "";
-                  setCode(newCode);
-                  if (selectedTaskId) {
-                    localStorage.setItem(`torchcode_code_${selectedTaskId}`, newCode);
-                  }
-                }}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  fontFamily: "'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace",
-                  lineHeight: 24,
-                  padding: { top: 16 },
-                  scrollBeyondLastLine: false,
-                  smoothScrolling: true,
-                  cursorBlinking: "smooth",
-                  cursorSmoothCaretAnimation: "on",
-                  formatOnPaste: true,
-                }}
-              />
+              {/* Uncontrolled on purpose. Passing `value` makes the wrapper replace
+                  the full model range on every mismatch, which moves the caret.
+                  `path` gives each task its own model and view state instead. */}
+              {editorDoc ? (
+                <Editor
+                  height="100%"
+                  language="python"
+                  theme="vs-dark"
+                  path={`${editorDoc.taskId}.py`}
+                  defaultValue={editorDoc.value}
+                  onMount={handleEditorMount}
+                  onChange={handleEditorChange}
+                  options={EDITOR_OPTIONS}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  Loading editor...
+                </div>
+              )}
             </div>
           </div>
         </Allotment>
