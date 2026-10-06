@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { Play, RotateCcw, ChevronDown, Check, X, AlertCircle } from 'lucide-react';
+import { Play, RotateCcw, ChevronDown, Check, X, AlertCircle, BookOpen, Copy, FileText, ListChecks } from 'lucide-react';
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
 
@@ -37,6 +37,11 @@ type TestResult = {
   stderr: string;
 };
 
+type SolutionCell = {
+  type: 'markdown' | 'code';
+  source: string;
+};
+
 type SubmissionResponse = {
   success: boolean;
   error?: string;
@@ -49,6 +54,87 @@ type SubmissionResponse = {
   stderr: string;
 };
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 z-10 flex items-center px-2 py-1 rounded text-xs text-gray-400 bg-[#2d2d2d] hover:bg-[#3c3c3c] hover:text-gray-200 transition-colors"
+      title="Copy to clipboard"
+    >
+      {copied ? (
+        <>
+          <Check className="w-3 h-3 mr-1 text-green-500" /> Copied
+        </>
+      ) : (
+        <>
+          <Copy className="w-3 h-3 mr-1" /> Copy
+        </>
+      )}
+    </button>
+  );
+}
+
+const SOLUTION_LINE_HEIGHT = 22;
+const SOLUTION_EDITOR_PADDING = 40;
+
+function SolutionCodeCell({ source }: { source: string }) {
+  const lineCount = Math.max(source.split("\n").length, 1);
+  const height = Math.min(
+    Math.max(lineCount * SOLUTION_LINE_HEIGHT + SOLUTION_EDITOR_PADDING, 72),
+    640
+  );
+
+  return (
+    <div className="relative rounded-lg border border-[#404040] overflow-hidden bg-[#1e1e1e]">
+      <div className="absolute top-2 left-3 z-10 text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+        Python
+      </div>
+      <CopyButton text={source} />
+      <Editor
+        height={height}
+        language="python"
+        theme="vs-dark"
+        value={source}
+        options={{
+          readOnly: true,
+          domReadOnly: true,
+          minimap: { enabled: false },
+          fontSize: 13,
+          fontFamily: "'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace",
+          lineHeight: SOLUTION_LINE_HEIGHT,
+          padding: { top: 28 },
+          scrollBeyondLastLine: false,
+          lineNumbers: "on",
+          renderLineHighlight: "none",
+          overviewRulerLanes: 0,
+          hideCursorInOverviewRuler: true,
+          overviewRulerBorder: false,
+          contextmenu: false,
+          folding: false,
+          scrollbar: {
+            vertical: lineCount > 28 ? "auto" : "hidden",
+            horizontal: "auto",
+            handleMouseWheel: lineCount > 28,
+          },
+          wordWrap: "off",
+        }}
+      />
+    </div>
+  );
+}
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -56,7 +142,9 @@ export default function Home() {
   const [code, setCode] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState<SubmissionResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'problem' | 'results'>('problem');
+  const [activeTab, setActiveTab] = useState<'problem' | 'results' | 'solution'>('problem');
+  const [solution, setSolution] = useState<SolutionCell[] | null>(null);
+  const [solutionLoading, setSolutionLoading] = useState(false);
   const [solvedTasks, setSolvedTasks] = useState<Record<string, boolean>>({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -104,11 +192,28 @@ export default function Home() {
           const savedCode = localStorage.getItem(`torchcode_code_${selectedTaskId}`);
           setCode(savedCode !== null ? savedCode : data.initial_code);
           setResults(null);
+          setSolution(null);
           setActiveTab('problem');
         })
         .catch(err => console.error("Failed to load task details", err));
     }
   }, [selectedTaskId]);
+
+  useEffect(() => {
+    // Lazily load the reference solution the first time the tab is opened
+    // for the current task.
+    if (activeTab === 'solution' && selectedTaskId && solution === null && !solutionLoading) {
+      setSolutionLoading(true);
+      fetch(`${API_BASE}/tasks/${selectedTaskId}/solution`)
+        .then(res => (res.ok ? res.json() : { cells: [] }))
+        .then((data: { cells: SolutionCell[] }) => setSolution(data.cells || []))
+        .catch(err => {
+          console.error("Failed to load solution", err);
+          setSolution([]);
+        })
+        .finally(() => setSolutionLoading(false));
+    }
+  }, [activeTab, selectedTaskId, solution, solutionLoading]);
 
   const handleRunCode = async () => {
     if (!selectedTaskId) return;
@@ -258,15 +363,17 @@ export default function Home() {
             {/* Tabs */}
           <div className="flex border-b border-[#404040] bg-[#252526]">
             <button 
-              className={`px-6 py-3 font-medium transition-colors ${activeTab === 'problem' ? 'text-white border-b-2 border-orange-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
+              className={`px-6 py-3 font-medium transition-colors flex items-center ${activeTab === 'problem' ? 'text-white border-b-2 border-orange-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
               onClick={() => setActiveTab('problem')}
             >
+              <FileText className="w-4 h-4 mr-2" />
               Problem
             </button>
             <button 
-              className={`px-6 py-3 font-medium transition-colors ${activeTab === 'results' ? 'text-white border-b-2 border-green-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
+              className={`px-6 py-3 font-medium transition-colors flex items-center ${activeTab === 'results' ? 'text-white border-b-2 border-green-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
               onClick={() => setActiveTab('results')}
             >
+              <ListChecks className="w-4 h-4 mr-2" />
               Test Results
               {results && (
                 <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${results.success ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
@@ -274,11 +381,18 @@ export default function Home() {
                 </span>
               )}
             </button>
+            <button
+              className={`px-6 py-3 font-medium transition-colors flex items-center ${activeTab === 'solution' ? 'text-white border-b-2 border-purple-500 bg-[#1e1e1e]' : 'text-gray-400 hover:text-gray-200'}`}
+              onClick={() => setActiveTab('solution')}
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Solution
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">
-            {activeTab === 'problem' ? (
-              <div className="markdown-body">
+            {activeTab === 'problem' && (
+              <div className="problem-pane markdown-body">
                 {taskDetails ? (
                   <>
                     <h1 className="text-2xl font-semibold mb-4 text-white">{taskDetails.title}</h1>
@@ -325,7 +439,9 @@ export default function Home() {
                   <div className="text-gray-500">Loading problem...</div>
                 )}
               </div>
-            ) : (
+            )}
+
+            {activeTab === 'results' && (
               <div className="results-pane">
                 {isSubmitting ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
@@ -419,6 +535,38 @@ export default function Home() {
                   <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-4 mt-20">
                     <Play className="w-16 h-16 text-[#333333]" />
                     <p>Run your code to see results here.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'solution' && (
+              <div className="solution-pane">
+                {solutionLoading ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    Loading solution...
+                  </div>
+                ) : solution && solution.length > 0 ? (
+                  <div className="space-y-5">
+                    {solution.map((cell, idx) =>
+                      cell.type === 'markdown' ? (
+                        <div key={idx} className="markdown-body">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                          >
+                            {cell.source}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <SolutionCodeCell key={idx} source={cell.source} />
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-4 mt-20">
+                    <BookOpen className="w-16 h-16 text-[#333333]" />
+                    <p>No reference solution for this exercise yet.</p>
                   </div>
                 )}
               </div>
