@@ -1,0 +1,13 @@
+.figure { margin: 18px 0; border: 1px solid #dfe9d3; border-radius: 12px; background: #fcfef8; overflow: hidden; }
+.caption { padding: 10px 15px; color: #4c6845; background: #f4f7ed; border-bottom: 1px solid #e3ead9; font-size: 11px; font-weight: 650; }
+.viewport { position: relative; max-width: 100%; overflow-x: auto; padding: 20px 16px; scrollbar-width: thin; scrollbar-color: #c4d4b1 #fcfef8; }
+.viewport:focus-visible { outline: 3px solid #769a54; outline-offset: -3px; }
+.diagram { width: max-content; min-width: 100%; }
+.diagram > svg { display: block; margin: 0 auto; font-family: Arial, sans-serif; }
+.staging { position: absolute; top: 0; left: 0; width: 100%; visibility: hidden; pointer-events: none; }
+.figure .status { margin: 0; font-size: 12px; color: #647655; }
+.source { padding: 9px 15px; border-top: 1px solid #e3ead9; background: #f4f7ed; font-size: 11px; }
+.source summary { width: fit-content; color: #587d40; cursor: pointer; }
+.source summary:focus-visible { outline: 3px solid #769a54; outline-offset: 3px; border-radius: 3px; }
+.source pre { max-height: 280px; font-size: 11px; }
+@media (max-width: 600px) { .viewport { padding: 16px 12px; } }

@@ -102,20 +102,46 @@ Open **<http://localhost:8888>** — that's it. Works with both Docker and Podma
 
 ### Option 3 — Standalone Web UI (Next.js + FastAPI)
 
-For a modern, standalone coding experience with an integrated IDE and dual-pane layout:
+With Python 3.10+ and Node.js 20.9+ (npm) installed, run this from the repository root to launch the coding workspace and daily practice dashboard together:
 
-1. **Start Backend (FastAPI):**
-   ```bash
-   pip install -r api/requirements.txt
-   python -m uvicorn api.main:app --port 8000 --reload
-   ```
-2. **Start Frontend (Next.js):**
-   ```bash
-   cd web
-   npm install
-   npm run dev
-   ```
-3. Open **<http://localhost:3000>** in your browser.
+```bash
+./start.sh
+```
+
+The script creates a Python virtual environment if needed, installs API and frontend dependencies, and starts:
+
+- **<http://localhost:4000>** — your daily practice dashboard.
+- **<http://localhost:3000>** — the coding workspace with an integrated IDE, debugger, and test feedback.
+- **<http://localhost:8000>** — the FastAPI backend shared by both UIs.
+
+On the **localhost:4000** dashboard:
+
+- **Today’s practice:** choose a daily goal (3 problems by default), mixing new lessons in Suggested Study Plan order with timely reviews.
+- **Review lab & Your journey:** revisit tricky problems, explore four weekly paths, and view submission history grouped by problem with test results.
+- **Practice It! & Solution:** open a problem on localhost:3000 or view its solution code and explanations, including interactive examples and a fullscreen option.
+
+To stop all three services, run this from the repository root in another terminal:
+
+```bash
+./stop.sh
+```
+
+You can also press **Ctrl+C** in the launch terminal. Ports 3000, 4000, and 8000 must be available. If dependencies are already installed, use `SKIP_INSTALL=1 ./start.sh` to skip installation.
+
+<details>
+<summary>Practice features and saved history</summary>
+
+Choose a local learner profile, adjust the daily problem count, and click **Practice It!** to open the selected problem in the coding workspace. Submitting code saves the attempt and test results; the dashboard uses these results to prioritize unfinished problems and schedule review of past problems. Each profile keeps its own goal and history, stored locally in SQLite under `data/` and retained across restarts.
+
+**Your Journey** turns the Suggested Study Plan below into four illustrated weekly paths, with all 41 problems in study order. Select a problem to see your progress and open its practice workspace or solution. Practice history groups repeated submissions under each problem; expand a row to see individual attempts and their test results.
+
+The **Solution** button beside each practice button opens a guide with **Solution Code** and **Explanation** tabs. Use **Fullscreen** in the guide's header to fill the browser window; **Exit fullscreen** or **Esc** returns to the smaller view without losing your place. Code comes from the reference notebook; explanations for all 41 problems are pre-generated in [`explanations/`](explanations/README.md). Each guide walks through the actual code, shows intermediate values in worked examples and diagrams, and explains the reference's edge cases. Selected guides also include interactive examples for dropout, embedding, attention, masks, normalization, RoPE, sampling, and PPO. The code tab supports copying the implementation, including its imports, back into the editor.
+
+In the coding workspace, **Submission history** shows the current learner's past attempts for the selected problem, including submission times and passed/total test counts. Click an attempt to load its exact code into the editor; **Undo load** restores the previous draft. New submissions save source code locally alongside test results. Older attempts retain their results but show **Code unavailable** because their source code was not recorded.
+
+Open the coding workspace once to import any existing browser-saved solved markers. These markers preserve completion status; detailed history starts with recorded submissions. Profiles are local practice identities, with no signup or account authentication.
+
+</details>
 
 ![TorchCode UI Preview](assets/ui_preview.png)
 
@@ -238,11 +264,11 @@ status()                    # Progress dashboard — solved / attempted / todo
 
 ## 📅 Suggested Study Plan
 
-> **Total: ~12–16 hours spread across 3–4 weeks. Perfect for interview prep on a deadline.**
+> **All 41 problems: ~12–16 hours spread across 3–4 weeks. Perfect for interview prep on a deadline.**
 
 | Week | Focus | Problems | Time |
 |:----:|-------|----------|:----:|
-| **1** | 🧱 Foundations | ReLU → Softmax → CE Loss → Dropout → Embedding → GELU → Linear → LayerNorm → BatchNorm → RMSNorm → SwiGLU MLP → Conv2d | 2–3 hrs |
+| **1** | 🧱 Foundations | ReLU → Softmax → CE Loss → Dropout → Embedding → GELU → Linear → Linear Regression → LayerNorm → BatchNorm → RMSNorm → SwiGLU MLP → Conv2d | 2–3 hrs |
 | **2** | 🧠 Attention Deep Dive | SDPA → MHA → Cross-Attn → Causal → GQA → KV Cache → Sliding Window → RoPE → Linear Attn → Flash Attn | 3–4 hrs |
 | **3** | 🏗️ Architecture + Training | GPT-2 Block → LoRA → MoE → ViT Patch → Adam → Cosine LR → Grad Clip → Grad Accumulation → Kaiming Init | 3–4 hrs |
 | **4** | 🎯 Inference + Advanced | Top-k/p Sampling → Beam Search → Speculative Decoding → BPE → INT8 Quant → DPO Loss → GRPO Loss → PPO Loss → OPD Loss + speed run | 3–4 hrs |

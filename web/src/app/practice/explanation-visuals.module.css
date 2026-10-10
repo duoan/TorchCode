@@ -1,0 +1,59 @@
+.lab { border: 1px solid #d9e6c9; border-radius: 15px; padding: 20px; background: #f7faef; margin: 24px 0; color: #526943; font-size: 12px; line-height: 1.7; }
+.lab .heading { display: flex; align-items: center; gap: 7px; color: #587542; font-size: 9px; letter-spacing: 1.3px; font-weight: 700; }
+.heading b { margin-left: auto; font-size: 8px; font-weight: 600; letter-spacing: .2px; border-radius: 20px; background: #e8f1da; border: 1px solid #dbe8ca; padding: 3px 8px; }
+.lab > h3 { font-size: 17px; color: #355132; margin: 9px 0 16px; line-height: 1.4; font-weight: 700; }
+.lab > p { margin: 12px 0 0; color: #526943; }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; align-items: center; margin: 17px 0; }
+.control { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.control > span { display: flex; align-items: center; justify-content: space-between; gap: 7px; font-size: 11px; font-weight: 650; color: #4d653d; }
+.control output { font-variant-numeric: tabular-nums; color: #355132; background: #e6efd7; padding: 0 6px; border-radius: 5px; }
+.lab input[type='range'] { width: 100%; accent-color: #638345; cursor: pointer; }
+.lab input[type='checkbox'] { accent-color: #638345; }
+.control select { border: 1px solid #ccdbbc; border-radius: 7px; padding: 6px 8px; background: #fcfef8; color: #455f34; font-family: inherit; font-size: 10px; width: 100%; }
+.toggle { display: flex; gap: 7px; align-items: center; font-size: 11px; font-weight: 600; }
+.lab button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: #e6efd7; border: 1px solid #cfdfb8; border-radius: 7px; padding: 7px 9px; color: #486333; font-size: 10px; font-weight: 650; cursor: pointer; }
+.lab button:hover { background: #dae8c7; }
+.lab button:focus-visible, .lab input:focus-visible, .lab select:focus-visible { outline: 2px solid #638345; outline-offset: 3px; }
+.tableScroll { overflow-x: auto; margin-top: 18px; border: 1px solid #d9e5cc; border-radius: 9px; background: #fcfef8; }
+.lab .tableScroll table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 0; }
+.lab .tableScroll th { background: #eaf1de; color: #4e663c; font-size: 10px; line-height: 1.5; font-weight: 650; }
+.lab .tableScroll th, .lab .tableScroll td { border: 0; border-bottom: 1px solid #e0e9d5; padding: 9px 10px; text-align: left; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lab .tableScroll tbody > tr:last-child td { border-bottom: 0; }
+.lab .tableScroll .highlight { background: #eaf2de; }
+.lab .tableScroll .result { color: #35582c; font-weight: 750; }
+.yes, .no { display: inline-flex; border-radius: 5px; padding: 1px 5px; font-size: 10px; }
+.yes { color: #3e642b; background: #e3efd3; }
+.no { color: #6b715f; background: #edf0e8; }
+.lab .formula { background: #eaf2de; border: 1px solid #dbe7ca; border-radius: 8px; padding: 11px; color: #3f5f30; font-family: var(--font-geist-mono), monospace; font-size: 11px; overflow-wrap: anywhere; }
+.flow { display: flex; justify-content: center; align-items: center; gap: 16px; margin: 20px 0; flex-wrap: wrap; }
+.flow > svg { color: #79955c; flex-shrink: 0; }
+.matrixGroup { text-align: center; min-width: 135px; flex: 1; }
+.matrixGroup > span { display: block; font-size: 10px; color: #526b40; margin-bottom: 8px; }
+.matrix { display: grid; border-left: 2px solid #8daa70; border-right: 2px solid #8daa70; border-radius: 7px; gap: 5px; padding: 6px; background: #eef4e3; }
+.matrix > span { background: #fcfef8; border: 1px solid #dbe6ce; padding: 5px; border-radius: 4px; color: #436132; font-variant-numeric: tabular-nums; font-family: var(--font-geist-mono), monospace; font-size: 11px; }
+.bar { position: relative; min-width: 85px; height: 24px; border-radius: 4px; overflow: hidden; background: #e8efdd; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: #b8ce98; transition: width .15s; }
+.bar span { position: relative; padding: 0 8px; color: #354e2b; line-height: 24px; font-size: 10px; }
+.maskGrid { display: grid; grid-template-columns: minmax(65px, 1.5fr) repeat(6, 1fr); gap: 5px; margin: 20px auto 13px; max-width: 475px; }
+.maskGrid > b, .maskGrid > span { display: grid; place-items: center; min-height: 30px; border-radius: 5px; font-size: 11px; }
+.maskGrid > span:first-child { font-size: 9px; white-space: nowrap; }
+.allowed { background: #deedca; color: #496b31; }
+.blocked { background: #e8ece2; color: #6b7460; }
+.maskGrid .selectedRow { box-shadow: inset 0 0 0 2px #819e5b; }
+.legend { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; font-size: 9px; color: #536a43; margin: 13px 0; }
+.legend > span { display: flex; gap: 6px; align-items: center; }
+.legend i { width: 10px; height: 10px; border: 1px solid #bccfaf; border-radius: 3px; }
+.tokenStrip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 15px; }
+.tokenStrip > span { text-align: center; padding: 7px 3px; border-radius: 6px; font-size: 9px; }
+.tokenStrip b { display: block; font-size: 11px; font-family: var(--font-geist-mono), monospace; }
+.circles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin: 15px 0; }
+.circles > div { display: flex; flex-direction: column; align-items: center; background: #fcfef8; border: 1px solid #e0e8d5; border-radius: 11px; padding: 10px; }
+.circles svg { width: min(100%, 175px); }
+.circles b { font-size: 10px; color: #456337; }
+.circles span { text-align: center; font-size: 9px; color: #5d704f; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.sampleRow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 15px; font-size: 10px; }
+.sampleRow output { color: #496633; }
+.objectiveChart { display: block; width: 100%; max-width: 480px; margin: 16px auto 7px; background: #fcfef8; border: 1px solid #dfe8d3; border-radius: 10px; }
+.objectiveChart text { fill: #556e43; font-size: 10px; font-family: inherit; }
+@media (max-width: 600px) { .lab { padding: 15px 12px; } .lab > h3 { font-size: 16px; } .heading b { display: none; } .controls { grid-template-columns: 1fr; gap: 14px; } .maskGrid { gap: 3px; grid-template-columns: 57px repeat(6, 1fr); } .maskGrid > b, .maskGrid > span { min-height: 25px; font-size: 10px; } .matrixGroup { flex-basis: 100%; } .flow > svg { transform: rotate(90deg); } .circles { gap: 7px; } .circles > div { padding: 6px; } }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
