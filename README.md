@@ -127,12 +127,12 @@ For a modern, standalone coding experience with an integrated IDE and dual-pane 
 
 ### 🔵 Prerequisites: PyTorch skills the problems assume
 
-New to PyTorch, or rusty? Start here. Each prerequisite is a short lesson followed by mini-exercises taken from real problems. See **[CURRICULUM.md](CURRICULUM.md)** for the full learning path and the recommended problem order.
+New to PyTorch, or rusty? Start here. Each prerequisite is a short lesson followed by mini-exercises taken from real problems. Follow **[LEARNING_PATH.md](LEARNING_PATH.md)** for the recommended problem order, and see [CURRICULUM.md](CURRICULUM.md) for the reasoning behind it.
 
 | # | Prerequisite | Exercises | Unlocks |
 |:---:|---|---|---|
-| P2 | <a href="https://github.com/duoan/TorchCode/blob/master/templates/00_p02_broadcasting.ipynb" target="_blank">Broadcasting</a> <a href="https://colab.research.google.com/github/duoan/TorchCode/blob/master/templates/00_p02_broadcasting.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `add_channel_bias`, `scale_rows`, `abs_distance_matrix`, `outer_angles`, `pairwise_sq_dists` | #04, #07, #11, #22, #24, #28 |
-| P5 | <a href="https://github.com/duoan/TorchCode/blob/master/templates/00_p05_shape_manipulation.ipynb" target="_blank">Shape Manipulation</a> <a href="https://colab.research.google.com/github/duoan/TorchCode/blob/master/templates/00_p05_shape_manipulation.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `split_heads`, `merge_heads`, `repeat_kv`, `interleave`, `patchify` | #06, #10, #13, #14, #23, #24, #27 |
+| P2 | <a href="https://github.com/duoan/TorchCode/blob/master/templates/00_p02_broadcasting.ipynb" target="_blank">Broadcasting</a> <a href="https://colab.research.google.com/github/duoan/TorchCode/blob/master/templates/00_p02_broadcasting.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `add_channel_bias`, `scale_rows`, `abs_distance_matrix`, `outer_angles`, `pairwise_sq_dists` | #04, #07, #08, #09, #11, #22, #24, #28, #40 |
+| P5 | <a href="https://github.com/duoan/TorchCode/blob/master/templates/00_p05_shape_manipulation.ipynb" target="_blank">Shape Manipulation</a> <a href="https://colab.research.google.com/github/duoan/TorchCode/blob/master/templates/00_p05_shape_manipulation.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `split_heads`, `merge_heads`, `repeat_kv`, `interleave`, `patchify` | #06, #10, #13, #14, #23, #24, #27, #28 |
 
 More prerequisites (tensor basics, reductions, indexing, matmul/einsum, autograd, `nn.Module`, numerical stability, training loops) are planned in [CURRICULUM.md](CURRICULUM.md).
 
