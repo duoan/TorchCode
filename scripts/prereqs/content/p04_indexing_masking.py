@@ -24,6 +24,8 @@ PyTorch has several ways to do this (slicing, integer "fancy" indexing, boolean 
 5. `topk` and `sort`: values *and* indices
 6. `gather` and `scatter`: index-based reads and writes along a dim
 7. Grouping by id: `unique`, `bincount`, `index_add`
+8. More selection tools: `one_hot`, `nonzero`, `searchsorted`, `take_along_dim`, `index_select`, `scatter_add`
+9. Many ways to do it: equivalent indexing patterns and their trade-offs
 
 ### Exercises
 | # | Function | Shows up in |
@@ -153,6 +155,56 @@ counts = torch.bincount(inv)
 sums = torch.zeros(len(uniq)).index_add(0, inv, vals)
 print(counts, sums)                               # [2, 2, 1]  [7., 4., 4.]
 print((sums / counts)[inv])                       # each element's group mean: [2., 3.5, 2., 4., 3.5]
+'''),
+        ("md", r'''
+## 8. More selection tools
+
+- **`F.one_hot(idx, num_classes)`** turns class ids into one-hot rows (as `int64`; convert with `.float()`).
+- **`torch.nonzero(mask)`** / **`torch.where(mask)`** (one argument) return the *positions* of `True` entries. The output size depends on the data, so on a GPU the CPU must wait for the result (a **sync**), and tools like `torch.compile` can't plan around it. Prefer a mask or `masked_fill` when you can.
+- **`torch.searchsorted(sorted_seq, values)`** finds where each value would be inserted. With a cumulative distribution it samples by **inverse CDF**: draw `u ~ U(0, 1)` and find the first bucket whose cumulative probability exceeds `u`.
+- **`torch.take_along_dim(x, idx, dim)`** is `gather` that also broadcasts `idx`; **`x.index_select(dim, idx)`** picks whole slices along one dim.
+- **`scatter_add` / `scatter_reduce`** write **many** values into the **same** slot, combining them (sum, max, mean…). Plain `scatter` would keep only one of them.
+'''),
+        ("code", r'''
+import torch.nn.functional as F
+print(F.one_hot(torch.tensor([0, 2, 1]), num_classes=3))
+print(torch.nonzero(torch.tensor([[0, 1], [1, 1]])))         # (row, col) of each nonzero
+
+probs = torch.tensor([0.1, 0.6, 0.3])
+cdf = probs.cumsum(0)                                         # [0.1, 0.7, 1.0]
+u = torch.tensor([0.05, 0.5, 0.95])
+print(torch.searchsorted(cdf, u))                             # [0, 1, 2]: inverse-CDF sampling
+
+x = torch.tensor([[10., 11., 12.], [20., 21., 22.]])
+print(torch.take_along_dim(x, torch.tensor([[2], [0]]), dim=1))   # [[12.], [20.]]
+print(x.index_select(1, torch.tensor([0, 2])))                     # columns 0 and 2
+
+slots = torch.zeros(3).scatter_add(0, torch.tensor([0, 0, 2]), torch.tensor([1., 2., 5.]))
+print(slots)                                                  # [3., 0., 5.]: both writes to slot 0 are summed
+'''),
+        ("md", r'''
+## 9. Many ways to do it
+
+| Goal | Equivalent forms | Watch out for |
+|------|------------------|---------------|
+| One value per row | `x[torch.arange(B), idx]`, `x.gather(1, idx[:, None]).squeeze(1)`, `torch.take_along_dim(x, idx[:, None], 1).squeeze(1)`, `(F.one_hot(idx, C) * x).sum(1)` | the one-hot form builds a full `(B, C)` tensor: wasteful for large vocabularies |
+| Sums per group | `zeros(G).index_add(0, inv, v)`, `zeros(G).scatter_add(0, inv, v)`, `torch.bincount(inv, weights=v)` | `bincount` has **no gradient**; on GPU, `index_add`/`scatter_add` use atomic adds, so float results can differ slightly run to run |
+| Replace where a condition holds | `x.masked_fill(mask, v)`, `torch.where(mask, v, x)`, `x.clone(); y[mask] = v` | the last one is in place on a copy: fine, but easy to forget the `clone()` |
+| Sample from probabilities | `torch.multinomial(p, n)`, `torch.searchsorted(p.cumsum(0), torch.rand(n))` | `multinomial` handles rounding at the top end of the CDF; with `searchsorted`, clamp to `len(p) - 1` |
+'''),
+        ("code", r'''
+torch.manual_seed(0)
+B, C = 4, 6
+x = torch.randn(B, C)
+idx = torch.tensor([0, 5, 2, 2])
+a = x[torch.arange(B), idx]
+b = x.gather(1, idx[:, None]).squeeze(1)
+c = (F.one_hot(idx, C) * x).sum(1)
+print(torch.equal(a, b), torch.allclose(a, c))
+
+inv = torch.tensor([0, 1, 0, 2])
+v = torch.tensor([1., 2., 3., 4.])
+print(torch.zeros(3).index_add(0, inv, v), torch.zeros(3).scatter_add(0, inv, v), torch.bincount(inv, weights=v))
 '''),
     ],
     "exercises_intro": r'''

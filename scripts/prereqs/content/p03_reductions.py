@@ -24,6 +24,8 @@ Two choices decide whether that works: **which `dim`** you reduce over, and whet
 5. Reducing over several dims at once
 6. Norms, and reducing across a *list* of tensors
 7. Cumulative sums, inclusive and exclusive
+8. More reductions: `std_mean`, `median`/`quantile`, `logcumsumexp`, `count_nonzero`, closeness checks
+9. Many ways to do it: equivalent reductions and their trade-offs
 
 ### Exercises
 | # | Function | Shows up in |
@@ -127,6 +129,44 @@ p = torch.tensor([0.5, 0.3, 0.15, 0.05])     # sorted, descending
 print(p.cumsum(dim=0))                       # [0.50, 0.80, 0.95, 1.00]  inclusive
 print(p.cumsum(dim=0) - p)                   # [0.00, 0.50, 0.80, 0.95]  exclusive
 print((p.cumsum(dim=0) - p) < 0.7)           # keep [True, True, False, False]: 0.5 + 0.3 >= 0.7
+'''),
+        ("md", r'''
+## 8. More reductions worth knowing
+
+| Want | Use | Note |
+|------|-----|------|
+| mean **and** std/var together | `torch.std_mean(x, dim, correction=0)`, `torch.var_mean(...)` | one call, one pass |
+| median / percentiles | `x.median(dim)`, `torch.quantile(x, q, dim)` | `median` returns the **lower** of the two middle values for even counts; `quantile` interpolates |
+| running log-sum-exp | `torch.logcumsumexp(x, dim)` | the stable log of `cumsum(exp(x))` |
+| count matches | `torch.count_nonzero(x > 0, dim)` | no float conversion needed |
+| "are these equal?" | `torch.allclose(a, b)`, `torch.isclose(a, b)` (element-wise), `torch.isfinite(x).all()` | never compare floats with `==` |
+'''),
+        ("code", r'''
+x = torch.tensor([[1., 2., 3., 10.],
+                  [4., 4., 4., 4.]])
+std, mean = torch.std_mean(x, dim=-1, correction=0)    # correction=0: biased, like unbiased=False
+print(mean, std)
+print(x.median(dim=-1).values, torch.quantile(x, 0.5, dim=-1))   # [2., 4.] vs [2.5, 4.]
+print(torch.logcumsumexp(torch.tensor([1000., 1000.]), dim=0))   # [1000., ~1000.693], no overflow
+print(torch.count_nonzero(x > 3, dim=-1))                         # [1, 4]
+print(0.1 + 0.2 == 0.3, torch.isclose(torch.tensor(0.1 + 0.2), torch.tensor(0.3)))
+'''),
+        ("md", r'''
+## 9. Many ways to do it
+
+| Goal | Equivalent forms | Prefer |
+|------|------------------|--------|
+| Mean of squares (RMSNorm) | `x.pow(2).mean(-1)`, `(x * x).mean(-1)`, `torch.linalg.vector_norm(x, dim=-1) ** 2 / n` | the first; it says what it means |
+| L2 norm | `x.norm()`, `torch.linalg.vector_norm(x)`, `x.pow(2).sum().sqrt()` | `torch.linalg.vector_norm`: `Tensor.norm` is kept for compatibility, and `linalg` is the documented API |
+| Max values | `x.max(dim).values`, `x.amax(dim)` | `amax` when you don't need indices; it also accepts several dims |
+| Biased variance | `x.var(dim, unbiased=False)`, `x.var(dim, correction=0)`, `((x - x.mean(dim, keepdim=True)) ** 2).mean(dim)` | `correction=0`: the newer, more general keyword |
+'''),
+        ("code", r'''
+x = torch.randn(3, 8)
+n = x.shape[-1]
+print(torch.allclose(x.pow(2).mean(-1), torch.linalg.vector_norm(x, dim=-1) ** 2 / n, atol=1e-6))
+print(torch.allclose(x.var(-1, unbiased=False), x.var(-1, correction=0)))
+print(torch.equal(x.max(-1).values, x.amax(-1)))
 '''),
     ],
     "exercises_intro": r'''

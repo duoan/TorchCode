@@ -23,6 +23,8 @@ A module that computes the right numbers can still fail. If its weights are not 
 3. Registering submodules: `ModuleList` / `Sequential`, not Python lists
 4. `train()` / `eval()` and `self.training`
 5. Freezing parameters and counting trainable ones
+6. Saving and loading (`state_dict`), custom init with `apply`, forward hooks
+7. Many ways to do it: registering submodules
 
 ### Exercises
 | # | Function / class | Shows up in |
@@ -133,6 +135,55 @@ lin = nn.Linear(10, 5)
 print(sum(p.numel() for p in lin.parameters() if p.requires_grad))   # 55
 lin.weight.requires_grad_(False)
 print(sum(p.numel() for p in lin.parameters() if p.requires_grad))   # 5
+'''),
+        ("md", r'''
+## 6. Saving, loading, initializing, and hooks
+
+- **Save the `state_dict`, not the module:** `torch.save(model.state_dict(), path)`, then `model.load_state_dict(torch.load(path))` into a freshly built model. With `strict=True` (the default), missing or unexpected keys raise an error, which catches architecture mismatches.
+- **`model.apply(fn)`** calls `fn` on every submodule. That's the standard way to run a custom initialization over a whole network.
+- **`module.register_forward_hook(fn)`** calls `fn(module, inputs, output)` after `forward`. Use it to capture intermediate activations without editing the model; `handle.remove()` detaches it.
+- **`optimizer.zero_grad()`** sets gradients to `None` by default (`set_to_none=True`), which saves memory compared with filling them with zeros.
+'''),
+        ("code", r'''
+import io
+model = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 2))
+
+buf = io.BytesIO()                                  # stands in for a file path
+torch.save(model.state_dict(), buf); buf.seek(0)
+clone = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 2))
+print(clone.load_state_dict(torch.load(buf)))       # <All keys matched successfully>
+
+def init(m):
+    if isinstance(m, nn.Linear):
+        nn.init.zeros_(m.bias)
+model.apply(init)
+print(model[0].bias.abs().sum().item())             # 0.0
+
+acts = {}
+handle = model[1].register_forward_hook(lambda mod, inp, out: acts.setdefault("relu", out.detach()))
+model(torch.randn(3, 4)); handle.remove()
+print(acts["relu"].shape, (acts["relu"] >= 0).all().item())
+'''),
+        ("md", r'''
+## 7. Many ways to do it: registering submodules
+
+| Form | Registered? | Use when |
+|------|:---:|----------|
+| `self.fc = nn.Linear(...)` | ✅ | a fixed, named layer |
+| `self.layers = nn.ModuleList([...])` | ✅ | a list you index or loop over yourself (MoE experts, transformer blocks) |
+| `self.heads = nn.ModuleDict({"cls": ..., "reg": ...})` | ✅ | layers looked up by name |
+| `self.net = nn.Sequential(...)` | ✅ | layers applied strictly in order |
+| `self.add_module("name", layer)` | ✅ | names computed at runtime |
+| `self.layers = [ ... ]` (a Python list) | ❌ | never: the parameters are invisible to optimizers and `state_dict` |
+'''),
+        ("code", r'''
+class Heads(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.heads = nn.ModuleDict({"cls": nn.Linear(4, 3), "reg": nn.Linear(4, 1)})
+        for i in range(2):
+            self.add_module(f"extra{i}", nn.Linear(4, 4))
+print([name for name, _ in Heads().named_children()])   # ['heads', 'extra0', 'extra1']
 '''),
     ],
     "exercises_intro": r'''

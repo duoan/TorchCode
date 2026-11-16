@@ -22,6 +22,8 @@ The classic bugs are silent: gradients that accumulate across steps, a parameter
 3. `torch.no_grad()` for updates and initialization
 4. `detach()` as a stop-gradient
 5. `torch.autograd.grad` for a gradient without touching `.grad`
+6. Inspecting gradients: `inference_mode`, tensor hooks, `gradcheck`, anomaly detection
+7. Many ways to do it: stopping gradients, and their differences
 
 ### Exercises
 | # | Function | Shows up in |
@@ -105,6 +107,58 @@ print(torch.autograd.grad(a, x)[0], torch.autograd.grad(b, x)[0])   # tensor([4.
 x = torch.tensor([1.0, -2.0], requires_grad=True)
 (g,) = torch.autograd.grad((x ** 3).sum(), x)
 print(g, x.grad)          # tensor([3., 12.]) None: .grad untouched
+'''),
+        ("md", r'''
+## 6. Inspecting gradients
+
+- **`torch.inference_mode()`** is a faster, stricter `no_grad()` for pure inference: tensors created inside can **never** be used in autograd later. Use `no_grad()` for things like parameter updates, `inference_mode()` for serving and evaluation.
+- **`t.register_hook(fn)`** calls `fn(grad)` when the gradient of `t` is computed. Use it to print, log, or even modify a gradient in flight (it works on intermediate tensors too).
+- **`torch.autograd.gradcheck(fn, inputs)`** compares your gradients against finite differences. Use `float64` inputs, or the check is too noisy.
+- **`torch.autograd.detect_anomaly()`** makes backward raise an error at the **first** operation that produced `NaN`, with a traceback to the forward line that created it.
+'''),
+        ("code", r'''
+with torch.inference_mode():
+    y = torch.ones(2) * 3
+print(y.is_inference())                        # True: can't be fed into autograd later
+
+x = torch.tensor([1.0, 2.0], requires_grad=True)
+h = x * 3
+h.register_hook(lambda g: print("grad reaching h:", g))
+(h ** 2).sum().backward()                      # prints the gradient flowing into h
+print(x.grad)
+
+f = lambda t: (t.sin() * t).sum()
+print(torch.autograd.gradcheck(f, (torch.randn(4, dtype=torch.float64, requires_grad=True),)))   # True
+
+z = torch.tensor([0.0], requires_grad=True)
+try:
+    with torch.autograd.detect_anomaly():
+        torch.sqrt(z - 1).sum().backward()      # sqrt(-1) = nan
+except RuntimeError as e:
+    print("anomaly:", str(e)[:70])
+'''),
+        ("md", r'''
+## 7. Many ways to do it: stopping gradients
+
+| Form | What it does | Use for |
+|------|--------------|---------|
+| `x.detach()` | same values, cut out of the graph; **shares memory** with `x` | constants inside a loss (targets, old log-probs) |
+| `with torch.no_grad():` | nothing inside is recorded | parameter updates, running stats, evaluation |
+| `with torch.inference_mode():` | like `no_grad`, faster, results can never enter autograd | pure inference |
+| `p.requires_grad_(False)` | stops computing gradients **for a leaf** from now on | freezing parameters (P8) |
+| `x.detach().clone()` | a cut-off **copy** | when you'll modify the copy in place |
+
+`x.data` also exists in old code. Avoid it: autograd doesn't track changes made through it, so it can silently corrupt gradients.
+'''),
+        ("code", r'''
+x = torch.tensor([1.0, 2.0], requires_grad=True)
+d = x.detach()
+print(d.data_ptr() == x.data_ptr())          # True: shares memory
+d2 = x.detach().clone()
+print(d2.data_ptr() == x.data_ptr())         # False: an independent copy
+with torch.no_grad():
+    y = x * 2
+print(y.requires_grad, (x * 2).requires_grad)  # False True
 '''),
     ],
     "exercises_intro": r'''

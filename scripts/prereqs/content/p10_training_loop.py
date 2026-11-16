@@ -24,6 +24,8 @@ This notebook covers the canonical training loop, how optimizers expose their le
 4. Random draws: `rand`, `bernoulli`, `multinomial`, `randperm`
 5. Shuffling and mini-batching a dataset
 6. Evaluation: `model.eval()` plus `torch.no_grad()`
+7. `Dataset`, `DataLoader`, and learning-rate schedulers
+8. Many ways to do it: batching and scheduling
 
 ### Exercises
 | # | Function | Shows up in |
@@ -135,6 +137,51 @@ with torch.no_grad():
     out = model(torch.randn(2, 4))
 print(out.requires_grad, model.training)   # False False
 model.train()
+'''),
+        ("md", r'''
+## 7. `Dataset`, `DataLoader`, and LR schedulers
+
+- A **`Dataset`** has `__len__` and `__getitem__(i)`. `TensorDataset(X, y)` wraps tensors that are already in memory.
+- A **`DataLoader`** batches, shuffles (`shuffle=True`, with `generator=g` for reproducibility), can drop the last short batch (`drop_last=True`), and can load in parallel (`num_workers`). It stacks samples with a **`collate_fn`**; write your own for variable-length data.
+- **`torch.optim.lr_scheduler`** changes the learning rate over time: `LambdaLR`, `CosineAnnealingLR`, `OneCycleLR`, … Call `scheduler.step()` **after** `optimizer.step()`.
+'''),
+        ("code", r'''
+from torch.utils.data import DataLoader, Dataset, TensorDataset
+
+X, y = torch.arange(10.)[:, None], torch.arange(10.)
+loader = DataLoader(TensorDataset(X, y), batch_size=4, shuffle=True, generator=torch.Generator().manual_seed(0))
+print([xb.flatten().tolist() for xb, _ in loader])          # shuffled, sizes 4, 4, 2
+
+class Squares(Dataset):
+    def __len__(self): return 5
+    def __getitem__(self, i): return torch.tensor(float(i)), torch.tensor(float(i * i))
+print(next(iter(DataLoader(Squares(), batch_size=5))))
+
+model = nn.Linear(1, 1)
+opt = torch.optim.SGD(model.parameters(), lr=1.0)
+sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda step: 0.5 ** step)
+lrs = []
+for _ in range(4):
+    opt.step(); sched.step(); lrs.append(opt.param_groups[0]["lr"])
+print(lrs)                                                 # [0.5, 0.25, 0.125, 0.0625]
+'''),
+        ("md", r'''
+## 8. Many ways to do it
+
+| Goal | Equivalent forms | Trade-off |
+|------|------------------|-----------|
+| Shuffled mini-batches | `torch.randperm` + `torch.split` (Exercise 5), `DataLoader(TensorDataset(X, y), shuffle=True)` | `DataLoader` adds workers, pinning, and custom collation; the manual form is simpler for in-memory tensors |
+| Change the LR | write `group["lr"]` yourself (Exercise 2), a built-in `lr_scheduler` | built-ins are tested and save/restore with `state_dict()`; manual is clearer for a one-off schedule like #30 |
+| Clear gradients | `optimizer.zero_grad()`, `model.zero_grad()`, `p.grad = None` | the optimizer clears only **its** parameters; the model clears **all** of its parameters |
+| Reproducible randomness | `torch.manual_seed(s)`, a `torch.Generator` per component | a generator isolates one component's randomness from everything else |
+'''),
+        ("code", r'''
+X, y = torch.arange(10.)[:, None], torch.arange(10.)
+g1, g2 = torch.Generator().manual_seed(1), torch.Generator().manual_seed(1)
+manual = [b.flatten().tolist() for b in torch.split(X[torch.randperm(10, generator=g1)], 4)]
+loaded = [xb.flatten().tolist() for xb, _ in DataLoader(TensorDataset(X, y), batch_size=4, shuffle=True, generator=g2)]
+print(manual)
+print(loaded)    # same batch sizes; the order can differ (DataLoader draws its permutation differently)
 '''),
     ],
     "exercises_intro": r'''

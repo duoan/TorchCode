@@ -23,6 +23,8 @@ In practice, most attention bugs are shape bugs.
 4. `cat` vs `stack`
 5. `repeat_interleave` vs `repeat`
 6. Sliding windows with `F.pad` and `unfold`
+7. `expand` vs `repeat`, `unflatten`, `movedim`, `roll`, and the `*_as` helpers
+8. Many ways to do it: equivalent reshapes and their trade-offs
 
 ### Exercises
 | # | Function | Shows up in |
@@ -130,6 +132,48 @@ print(w.shape)                             # (1, 1, 2, 2, 2, 2)
 print(w[0, 0, 0, 1])                       # top-right window: [[2, 3], [6, 7]]
 print(F.pad(x, (1, 1, 1, 1)).shape)        # (1, 1, 6, 6): one zero on every side
 print(x.unfold(3, 3, 1).shape)             # 1-D windows along W: (1, 1, 4, 2, 3)
+'''),
+        ("md", r'''
+## 7. `expand` vs `repeat`, and other helpers
+
+- **`x.expand(*sizes)`** broadcasts size-1 dims **without copying**: the new dims get stride `0`, so every "copy" reads the same memory. **`x.repeat(*reps)`** really copies. Use `expand` when you only read the result; never write into an expanded tensor.
+- **`x.unflatten(dim, sizes)`** is the readable inverse of `flatten`: `x.unflatten(-1, (H, d))` splits the model dim into heads.
+- **`x.movedim(src, dst)`** moves one dim to a new position; `swapaxes` / `transpose` swap two.
+- **`torch.roll(x, shifts, dims)`** shifts elements cyclically (wrapping around the end).
+- **`*_as` helpers** take the shape from another tensor: `view_as(y)`, `reshape_as(y)`, `expand_as(y)`.
+'''),
+        ("code", r'''
+x = torch.arange(3.).view(3, 1)
+e = x.expand(3, 4)
+r = x.repeat(1, 4)
+print(e.stride(), e.data_ptr() == x.data_ptr())   # (1, 0) True: no copy
+print(r.stride(), r.data_ptr() == x.data_ptr())   # (4, 1) False: a real copy
+
+h = torch.randn(2, 5, 12)
+print(h.unflatten(-1, (3, 4)).shape)              # (2, 5, 3, 4): heads split off
+print(torch.randn(2, 3, 4, 5).movedim(1, -1).shape)   # (2, 4, 5, 3): channels last
+print(torch.roll(torch.arange(5), shifts=1))      # [4, 0, 1, 2, 3]
+print(torch.zeros(2, 3).expand_as(torch.empty(4, 2, 3)).shape)
+'''),
+        ("md", r'''
+## 8. Many ways to do it
+
+| Goal | Equivalent forms | Trade-off |
+|------|------------------|-----------|
+| Split heads | `x.view(B, S, H, d).transpose(1, 2)`, `x.unflatten(-1, (H, d)).transpose(1, 2)`, `x.reshape(B, S, H, d).permute(0, 2, 1, 3)` | `view` fails loudly on non-contiguous input; `reshape` silently copies; `unflatten` doesn't need `B` and `S` |
+| Repeat KV heads (GQA) | `k.repeat_interleave(n, dim=1)`, `k[:, :, None].expand(B, Hkv, n, S, d).reshape(B, Hkv * n, S, d)` | the `expand` form is how many production implementations do it: no copy until `reshape` |
+| Add a dim | `x.unsqueeze(1)`, `x[:, None]`, `x.view(B, 1, D)` | all views; `[:, None]` is the most compact inside expressions |
+| Move channels last | `x.permute(0, 2, 3, 1)`, `x.movedim(1, -1)` | `movedim` states the intent and doesn't need every dim listed |
+'''),
+        ("code", r'''
+B, Hkv, S, d, n = 2, 2, 5, 4, 3
+k = torch.randn(B, Hkv, S, d)
+a = k.repeat_interleave(n, dim=1)
+b = k[:, :, None].expand(B, Hkv, n, S, d).reshape(B, Hkv * n, S, d)
+print(torch.equal(a, b))
+
+x = torch.randn(B, S, 12)
+print(torch.equal(x.view(B, S, 3, 4).transpose(1, 2), x.unflatten(-1, (3, 4)).transpose(1, 2)))
 '''),
     ],
     "exercises_intro": r'''
