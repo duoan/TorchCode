@@ -323,6 +323,7 @@ print(pairwise_sq_dists(a, b))
         (22, "`add_channel_bias`: the final `out + bias.view(1, -1, 1, 1)`"),
         (24, "`outer_angles`: the `pos * freqs` table of rotation angles"),
         (28, "`scale_rows`: each token's expert output times its routing weight"),
+        (42, "Reshaping per-channel `(C,)` statistics to `(1, C, 1, 1)`, like `add_channel_bias`"),
         (40, "The `(N,)` vs `(N, 1)` trap: `layer(X)` is `(N, 1)`, the target is `(N,)`"),
     ],
 }

@@ -268,6 +268,7 @@ print(global_l2_norm(ts))   # expect tensor(5.)
         (2, "`stable_shift` then `normalize_rows`: softmax is exactly these two steps around `exp`"),
         (4, "Mean and **biased** variance over the last dim, with `keepdim=True`"),
         (7, "`channel_stats`: batch statistics with `unbiased=False`"),
+        (42, "`channel_stats` is exactly its statistics step: reduce over `(0, 2, 3)`"),
         (8, "`x.pow(2).mean(dim=-1, keepdim=True)`: the mean square inside RMSNorm"),
         (12, "Dividing by a summed normalizer, like `normalize_rows`"),
         (21, "`global_l2_norm`: the total norm across all parameter gradients"),

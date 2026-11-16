@@ -41,9 +41,11 @@ P4 Indexing & masking's `attention_mask(n, kind, w)` builds all three from `R` (
 The statement says RoPE is "used in LLaMA, GPT-NeoX" and rotates **adjacent pairs** `(x[2k], x[2k+1])`. This interleaved convention matches the original RoFormer paper and Meta's LLaMA reference code. GPT-NeoX and the Hugging Face LLaMA implementation instead pair `x[k]` with `x[k + D/2]` (`rotate_half`). Both encode relative position, but they are **not interchangeable** when loading pretrained weights. Interviewers often ask about this.
 **Fixed:** the statement now has a convention note naming both styles. A `rotate_half` follow-up is still open.
 
-### #07 BatchNorm: running variance differs from PyTorch
-The solution and judge update `running_var` with the **biased** batch variance (`unbiased=False`). `nn.BatchNorm1d` normalizes with the biased variance but updates `running_var` with the **unbiased** one (verified: after one step on an `8 × 4` batch, the two give different `running_var` values). A learner who matches PyTorch exactly fails the "running stats update" test.
-**Fix:** use `x.var(dim=0, unbiased=True)` for the running-stat update in both the solution and the test, or state the simplification explicitly in the problem.
+### ✅ #07 BatchNorm: running variance differs from PyTorch
+The solution and judge updated `running_var` with the **biased** batch variance, while the statement said "update running stats like PyTorch". `nn.BatchNorm1d` normalizes with the biased variance but updates `running_var` with the **unbiased** one. A learner who matched PyTorch failed the "running stats update" test.
+Both conventions exist in practice: Flax and Keras use the biased batch variance for the running estimate too (checked in their source), so the old behavior was a convention, not nonsense, but the statement contradicted it.
+**Fixed:** #07 now follows PyTorch. The statement explains both variances and why the running estimate uses Bessel's correction, the reference and test use `unbiased=True` for `running_var` (the old update fails with a targeted message), and a new test compares against `nn.BatchNorm1d` over several steps.
+**Follow-up added:** a new problem, **#42 BatchNorm2d**, applies the same logic per channel over `(N, H, W)`: `(1, C, 1, 1)` broadcasting, and a Bessel correction over `N·H·W` samples. Its tests compare against `nn.BatchNorm2d`.
 
 ### ✅ #38 GRPO: simplified objective
 The statement describes GRPO as baseline-subtracted REINFORCE with group-normalized advantages, and it is honest about that. The GRPO objective from the DeepSeekMath paper also includes the **PPO-style clipped importance ratio** and a **KL penalty** against a reference policy. Interview questions about GRPO usually expect those terms.
