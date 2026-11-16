@@ -18,6 +18,7 @@ _COLORS = {
     "todo": "\033[90m⏳",       # gray
 }
 _DIFF_COLORS = {
+    "Prereq": "\033[96m",
     "Easy": "\033[92m",
     "Medium": "\033[93m",
     "Hard": "\033[91m",

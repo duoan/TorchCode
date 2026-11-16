@@ -6,7 +6,7 @@ import time
 import traceback
 from typing import Any
 
-from torch_judge.tasks import get_task, TASKS
+from torch_judge.tasks import get_task, task_function_names, TASKS
 from torch_judge.progress import mark_solved, mark_attempted
 
 _RESET = "\033[0m"
@@ -48,14 +48,17 @@ def check(task_id: str) -> None:
         return
 
     fn_name = task["function_name"]
+    fn_names = task_function_names(task)
     user_ns = _get_user_namespace()
 
-    if fn_name not in user_ns:
-        print(f"\n{_RED}❌ Function/class '{fn_name}' not found in your notebook.{_RESET}")
+    missing = [n for n in fn_names if n not in user_ns]
+    if missing:
+        names = ", ".join(f"'{n}'" for n in missing)
+        print(f"\n{_RED}❌ Function/class {names} not found in your notebook.{_RESET}")
         print(f"{_DIM}   Make sure you defined it in a cell above and ran that cell.{_RESET}\n")
         return
 
-    user_fn = user_ns[fn_name]
+    user_objs = {n: user_ns[n] for n in fn_names}
     tests = task["tests"]
     passed = 0
     total = len(tests)
@@ -67,7 +70,7 @@ def check(task_id: str) -> None:
 
     for i, test in enumerate(tests, 1):
         test_code = test["code"].replace("{fn}", fn_name)
-        namespace: dict[str, Any] = {fn_name: user_fn}
+        namespace: dict[str, Any] = dict(user_objs)
 
         t0 = time.perf_counter()
         try:

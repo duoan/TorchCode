@@ -7,7 +7,7 @@ import pkgutil
 from pathlib import Path
 from typing import Any
 
-DIFFICULTY_ORDER = {"Easy": 0, "Medium": 1, "Hard": 2}
+DIFFICULTY_ORDER = {"Prereq": -1, "Easy": 0, "Medium": 1, "Hard": 2}
 
 TASKS: dict[str, dict[str, Any]] = {}
 
@@ -24,8 +24,17 @@ def get_task(task_id: str) -> dict[str, Any] | None:
     return TASKS.get(task_id)
 
 
+def task_function_names(task: dict[str, Any]) -> list[str]:
+    """Names the user must define for a task.
+
+    Most tasks define a single ``function_name``. Prerequisite tasks bundle
+    several small exercises and list them all in ``function_names``.
+    """
+    return list(task.get("function_names") or [task["function_name"]])
+
+
 def list_tasks() -> list[tuple[str, dict[str, Any]]]:
     return sorted(
         TASKS.items(),
-        key=lambda t: DIFFICULTY_ORDER.get(t[1]["difficulty"], 9),
+        key=lambda t: (DIFFICULTY_ORDER.get(t[1]["difficulty"], 9), t[1].get("order", 0)),
     )

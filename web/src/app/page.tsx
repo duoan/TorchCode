@@ -187,6 +187,7 @@ export default function Home() {
                 ></div>
                 <div className="absolute top-full left-0 mt-2 w-96 max-h-[70vh] overflow-y-auto bg-[#2d2d2d] border border-[#404040] rounded-md shadow-2xl z-50 py-2">
                   {[
+                    { label: '🔵 Prerequisites', diff: 'Prereq' },
                     { label: '🟢 Easy', diff: 'Easy' },
                     { label: '🟡 Medium', diff: 'Medium' },
                     { label: '🔴 Hard', diff: 'Hard' }
@@ -284,7 +285,8 @@ export default function Home() {
                     <h1 className="text-2xl font-semibold mb-4 text-white">{taskDetails.title}</h1>
                     <div className="flex items-center space-x-4 mb-6">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium 
-                        ${taskDetails.difficulty === 'Easy' ? 'bg-[#2c4034] text-[#2cbb5d]' : 
+                        ${taskDetails.difficulty === 'Prereq' ? 'bg-[#22364a] text-[#4fb3ff]' :
+                          taskDetails.difficulty === 'Easy' ? 'bg-[#2c4034] text-[#2cbb5d]' : 
                           taskDetails.difficulty === 'Medium' ? 'bg-[#403622] text-[#ffc01e]' : 
                           'bg-[#402a2a] text-[#ef4743]'}`}>
                         {taskDetails.difficulty}
