@@ -23,6 +23,7 @@ PyTorch has several ways to do this (slicing, integer "fancy" indexing, boolean 
 4. `masked_fill` with `-inf`, and building masks with `triu` / comparisons
 5. `topk` and `sort`: values *and* indices
 6. `gather` and `scatter`: index-based reads and writes along a dim
+7. Grouping by id: `unique`, `bincount`, `index_add`
 
 ### Exercises
 | # | Function | Shows up in |
@@ -32,9 +33,10 @@ PyTorch has several ways to do this (slicing, integer "fancy" indexing, boolean 
 | 3 | `apply_mask(scores, mask)` | every masked attention problem |
 | 4 | `keep_topk(logits, k)` | #32 Top-k Sampling, #28 MoE |
 | 5 | `unsort(sorted_values, sort_idx)` | #32 Top-p Sampling |
+| 6 | `group_mean(values, group_ids)` | #38 GRPO |
 
 ### Rules
-- **No Python loops** over tensor elements.
+- **No Python loops** over tensor elements, or over groups (Exercise 6).
 - Do **not** use `F.cross_entropy` / `F.nll_loss` (Exercise 1) or `torch.argsort` on the indices to undo the sort (Exercise 5). Use `scatter`.
 ''',
     "lesson": [
@@ -130,12 +132,34 @@ base = torch.zeros(2, 3)
 print(base.scatter(1, torch.tensor([[2], [0]]), torch.tensor([[5.], [7.]])))
 # [[0., 0., 5.], [7., 0., 0.]]
 '''),
+        ("md", r'''
+## 7. Grouping by id
+
+GRPO (#38) normalizes each reward against the other rewards **from the same prompt**. Group ids can be arbitrary integers, like `[7, 3, 7, 10, 3]`.
+
+- `torch.unique(ids, return_inverse=True)` returns `(unique_ids, inverse)`, where `inverse[i]` is the position of `ids[i]` in `unique_ids`. That relabels the groups as `0 … G-1`.
+- `torch.bincount(inverse)` counts the members of each group.
+- `torch.zeros(G).index_add(0, inverse, values)` adds every value into its group's slot (`bincount(inverse, weights=values)` also works).
+- `group_stat[inverse]` broadcasts a per-group result back to every element.
+
+No loop over groups needed, no matter how many there are.
+'''),
+        ("code", r'''
+ids = torch.tensor([7, 3, 7, 10, 3])
+vals = torch.tensor([1., 2., 3., 4., 5.])
+uniq, inv = ids.unique(return_inverse=True)
+print(uniq, inv)                                  # tensor([ 3,  7, 10]) tensor([1, 0, 1, 2, 0])
+counts = torch.bincount(inv)
+sums = torch.zeros(len(uniq)).index_add(0, inv, vals)
+print(counts, sums)                               # [2, 2, 1]  [7., 4., 4.]
+print((sums / counts)[inv])                       # each element's group mean: [2., 3.5, 2., 4., 3.5]
+'''),
     ],
     "exercises_intro": r'''
 ---
 # ✏️ Exercises
 
-Implement the five functions below. Each one has a debug cell you can use before you submit.
+Implement the six functions below. Each one has a debug cell you can use before you submit.
 ''',
     "exercises": [
         {
@@ -288,6 +312,35 @@ s[2:] = float("-inf")                    # drop the two smallest, in sorted orde
 print(unsort(s, i))                      # expect tensor([0.3, -inf, 2.0, -inf])
 ''',
         },
+        {
+            "spec": r'''
+### Exercise 6: `group_mean(values, group_ids)`
+
+Replace every value with the mean of its group.
+
+- `values`: `(B,)` float
+- `group_ids`: `(B,)` integer ids; arbitrary values, not necessarily `0 … G-1` or sorted
+- returns: `(B,)` with `out[i] = mean of values[j] over all j with group_ids[j] == group_ids[i]`
+- same dtype as `values`, gradients must flow back to `values`, and **no Python loop over groups**
+
+*#38 GRPO computes this (and a per-group std) to turn rewards into advantages.*
+''',
+            "stub": r'''
+def group_mean(values: torch.Tensor, group_ids: torch.Tensor) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def group_mean(values: torch.Tensor, group_ids: torch.Tensor) -> torch.Tensor:
+    uniq, inv = torch.unique(group_ids, return_inverse=True)
+    sums = torch.zeros(len(uniq), dtype=values.dtype, device=values.device).index_add(0, inv, values)
+    counts = torch.bincount(inv, minlength=len(uniq)).to(values.dtype)
+    return (sums / counts)[inv]
+''',
+            "debug": r'''
+print(group_mean(torch.tensor([1., 2., 3., 4., 5.]), torch.tensor([7, 3, 7, 10, 3])))
+# expect tensor([2.0000, 3.5000, 2.0000, 4.0000, 3.5000])
+''',
+        },
     ],
     # Problem number -> what it reuses from this notebook ("What this unlocks" section)
     "unlocks": [
@@ -300,6 +353,6 @@ print(unsort(s, i))                      # expect tensor([0.3, -inf, 2.0, -inf])
         (24, "Strided slicing `x[..., 0::2]` and `x[..., 1::2]` for RoPE pairs (lesson §1)"),
         (28, "`topk` routing, then boolean-mask reads and writes like `output[mask] += ...` (lesson §3)"),
         (32, "`keep_topk` for top-k, then `sort`, mask, and `unsort` for top-p"),
-        (38, "Boolean masks to select and overwrite each group's rewards (lesson §3)"),
+        (38, "`group_mean`: per-group statistics with `unique` / `bincount` / `index_add`, no loop over groups"),
     ],
 }

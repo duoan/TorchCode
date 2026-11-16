@@ -21,6 +21,7 @@ Getting them right is mostly about **shape bookkeeping**: which dims are batch d
 3. Transposing the last two dims: `K.transpose(-2, -1)`
 4. `einsum`: name every dim, and the contraction becomes obvious
 5. Associativity and cost: `(A @ B) @ C` vs `A @ (B @ C)`
+6. Solving linear systems without inverting a matrix
 
 ### Exercises
 | # | Function | Shows up in |
@@ -119,6 +120,34 @@ t0 = time.perf_counter(); left = (Q @ K.T) @ V; t1 = time.perf_counter()
 right = Q @ (K.T @ V); t2 = time.perf_counter()
 print(f"(QK^T)V: {1000*(t1-t0):.1f} ms   Q(K^TV): {1000*(t2-t1):.1f} ms")
 print(torch.allclose(left, right, rtol=1e-3, atol=1e-2))
+'''),
+        ("md", r'''
+## 6. Solving linear systems
+
+To solve `A w = b`, **don't** compute `torch.linalg.inv(A) @ b`. It is slower and less accurate. Instead:
+
+| Problem | Use |
+|---------|-----|
+| Square system `A w = b` | `torch.linalg.solve(A, b)` |
+| Least squares: minimize `‖X w − y‖²` with more rows than columns | `torch.linalg.lstsq(X, y).solution` |
+
+The textbook normal equation `(XᵀX) w = Xᵀy` gives the same answer, but forming `XᵀX` **squares the condition number** of the problem, so it loses precision quickly when columns are nearly redundant. `lstsq` works on `X` directly. #40's closed-form method uses it, with a column of ones appended for the bias.
+'''),
+        ("code", r'''
+torch.manual_seed(0)
+X = torch.randn(200, 3, dtype=torch.float64)
+w_true = torch.tensor([[1.5], [-2.0], [0.5]], dtype=torch.float64)
+y = X @ w_true + 0.01 * torch.randn(200, 1, dtype=torch.float64)
+
+w_lstsq = torch.linalg.lstsq(X, y).solution                  # (3, 1)
+w_normal = torch.linalg.solve(X.T @ X, X.T @ y)             # same answer here
+print(w_lstsq.flatten(), w_normal.flatten())
+print(f"cond(X) = {torch.linalg.cond(X):.3g}, cond(X^T X) = {torch.linalg.cond(X.T @ X):.3g}")   # squared
+
+# Nearly redundant columns: the squaring is what hurts
+Xc = X.clone()
+Xc[:, 2] = Xc[:, 0] + 1e-4 * torch.randn(200, dtype=torch.float64)
+print(f"cond(Xc) = {torch.linalg.cond(Xc):.3g}, cond(Xc^T Xc) = {torch.linalg.cond(Xc.T @ Xc):.3g}")
 '''),
     ],
     "exercises_intro": r'''
@@ -280,6 +309,6 @@ print(torch.allclose(out, x @ (W + 0.5 * B @ A).T, atol=1e-4))       # expect Tr
         (23, "`attention_scores` with `S_q != S_k`"),
         (26, "`lora_forward`: the low-rank update without forming `B @ A`"),
         (36, "`x @ w.T` with the dequantized weight"),
-        (40, "`X @ w + b` for predictions and `X.T @ error` for the gradient"),
+        (40, "`X @ w + b`, `X.T @ error` for the gradient, and `torch.linalg.lstsq` for the closed form (lesson §6)"),
     ],
 }

@@ -24,6 +24,7 @@ Language-model losses (cross-entropy, DPO, PPO, GRPO, distillation) all work wit
 4. Stable `log(sigmoid(x))`
 5. Working in log-space: sums instead of products, ratios as `exp(a - b)`
 6. The `torch.where` NaN-gradient trap, and fully masked rows
+7. Online softmax: merging statistics block by block
 
 ### Exercises
 | # | Function | Shows up in |
@@ -33,6 +34,7 @@ Language-model losses (cross-entropy, DPO, PPO, GRPO, distillation) all work wit
 | 3 | `log_sigmoid(x)` | #37 DPO |
 | 4 | `kl_from_logits(p_logits, q_logits)` | #41 OPD, distillation |
 | 5 | `safe_masked_softmax(scores, mask)` | masked attention with padding |
+| 6 | `merge_softmax_stats(m1, s1, m2, s2)` | #25 Flash Attention |
 
 ### Rules
 - **No Python loops** over tensor elements.
@@ -130,12 +132,35 @@ good = e / torch.where(denom > 0, denom, torch.ones_like(denom))
 good.sum().backward()
 print("e / where(denom > 0, denom, 1) grad:", e.grad)            # finite
 '''),
+        ("md", r'''
+## 7. Online softmax: merging statistics block by block
+
+A stable softmax over a row needs two numbers: the max $m$ and the shifted sum $s = \sum_i e^{x_i - m}$. Then $\mathrm{logsumexp} = m + \log s$.
+You don't need the whole row at once. Split it into blocks, compute $(m_b, s_b)$ per block, and **merge**:
+
+$$m = \max(m_1, m_2), \qquad s = s_1\, e^{m_1 - m} + s_2\, e^{m_2 - m}$$
+
+Each old sum is rescaled to the new max before adding. **Flash Attention (#25)** streams over blocks of keys exactly like this, and rescales its running output accumulator by the same factor $e^{m_{old} - m_{new}}$, so the full `S × S` score matrix never exists.
+An empty block has $m = -\infty$, $s = 0$. Merging must handle it without producing `NaN`.
+'''),
+        ("code", r'''
+torch.manual_seed(0)
+x = torch.randn(10) * 5
+m, s = torch.tensor(float("-inf")), torch.tensor(0.0)        # empty so far
+for block in x.split(4):                                      # blocks of 4, 4, 2
+    mb = block.max()
+    sb = torch.exp(block - mb).sum()
+    m_new = torch.maximum(m, mb)
+    s = s * torch.exp(m - m_new) + sb * torch.exp(mb - m_new)
+    m = m_new
+print(m + torch.log(s), torch.logsumexp(x, dim=0))            # identical
+'''),
     ],
     "exercises_intro": r'''
 ---
 # ✏️ Exercises
 
-Implement the five functions below. Later exercises may call earlier ones. Each one has a debug cell you can use before you submit.
+Implement the six functions below. Later exercises may call earlier ones. Each one has a debug cell you can use before you submit.
 ''',
     "exercises": [
         {
@@ -280,12 +305,47 @@ print(out)            # expect [[1, 0, 0], [0.5, 0.5, 0], [0, 0, 0]]
 print(scores.grad)    # expect finite values, no nan
 ''',
         },
+        {
+            "spec": r'''
+### Exercise 6: `merge_softmax_stats(m1, s1, m2, s2)`
+
+Merge the softmax statistics of two blocks of the same rows.
+
+- `m1`, `m2`: running maxes, any (equal) shape; may be `-inf` for an empty block
+- `s1`, `s2`: sums `Σ exp(x - m)` for the matching block (`0` for an empty block)
+- returns: a tuple `(m, s)` for the union of both blocks
+- merging two **empty** blocks must give `(-inf, 0)`, not `NaN`
+
+*`m + log(s)` of the merged stats equals `logsumexp` over both blocks, however you split the row. This is the core of #25 Flash Attention.*
+''',
+            "stub": r'''
+def merge_softmax_stats(m1: torch.Tensor, s1: torch.Tensor,
+                        m2: torch.Tensor, s2: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    pass  # Replace this
+''',
+            "solution": r'''
+def merge_softmax_stats(m1: torch.Tensor, s1: torch.Tensor,
+                        m2: torch.Tensor, s2: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    m = torch.maximum(m1, m2)
+    shift = torch.where(torch.isinf(m), torch.zeros_like(m), m)   # both empty: avoid -inf - (-inf)
+    s = s1 * torch.exp(m1 - shift) + s2 * torch.exp(m2 - shift)
+    return m, s
+''',
+            "debug": r'''
+x = torch.tensor([1000.0, 1001.0, 3.0, 1002.0])
+a, b = x[:2], x[2:]
+m, s = merge_softmax_stats(a.max(), torch.exp(a - a.max()).sum(), b.max(), torch.exp(b - b.max()).sum())
+print(m + torch.log(s), torch.logsumexp(x, dim=0))    # expect the same value, ~1002.4076
+empty = torch.tensor(float("-inf")), torch.tensor(0.0)
+print(merge_softmax_stats(*empty, *empty))            # expect (tensor(-inf), tensor(0.))
+''',
+        },
     ],
     # Problem number -> what it reuses from this notebook ("What this unlocks" section)
     "unlocks": [
         (2, "Max-subtraction so `exp` never overflows"),
         (16, "`log_softmax` from `stable_logsumexp`, never `log(softmax)`"),
-        (25, "Online softmax: rescale the running sum by `exp(old_max - new_max)` when the max changes"),
+        (25, "`merge_softmax_stats`: stream over key blocks, rescaling the running sum and output by `exp(old_max - new_max)`"),
         (32, "Temperature (`logits / T`), and softmax over logits that include `-inf`"),
         (33, "Scoring sequences by **summing** log-probs instead of multiplying probabilities"),
         (34, "Acceptance ratios between probabilities, guarding against division by ~0"),

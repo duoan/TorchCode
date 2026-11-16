@@ -23,6 +23,7 @@ Two choices decide whether that works: **which `dim`** you reduce over, and whet
 4. `var` / `std`: the unbiased default and when you need `unbiased=False`
 5. Reducing over several dims at once
 6. Norms, and reducing across a *list* of tensors
+7. Cumulative sums, inclusive and exclusive
 
 ### Exercises
 | # | Function | Shows up in |
@@ -32,6 +33,7 @@ Two choices decide whether that works: **which `dim`** you reduce over, and whet
 | 3 | `channel_stats(x)` | #07 BatchNorm |
 | 4 | `masked_mean(x, mask)` | #41 OPD Loss, sequence pooling |
 | 5 | `global_l2_norm(tensors)` | #21 Gradient Clipping |
+| 6 | `exclusive_cumsum(x, dim)` | #32 Top-p Sampling |
 
 ### Rules
 - **No Python loops** over tensor elements or channels. (Exercise 5 may loop over the *list* of tensors.)
@@ -112,12 +114,26 @@ per_tensor = torch.stack([g.pow(2).sum() for g in grads])  # one scalar each
 print(per_tensor.sum().sqrt())
 print(torch.cat([g.flatten() for g in grads]).norm())      # same value, but copies everything
 '''),
+        ("md", r'''
+## 7. Cumulative sums
+
+`x.cumsum(dim)` keeps the shape and replaces each element with the running total up to and **including** it.
+The **exclusive** version, the total of everything strictly **before** each position, is `x.cumsum(dim) - x`.
+
+Top-p ("nucleus") sampling (#32) sorts the probabilities in descending order and keeps a token while the probability mass **before** it is still below `p`. The exclusive cumsum makes sure the token that crosses `p` is kept.
+'''),
+        ("code", r'''
+p = torch.tensor([0.5, 0.3, 0.15, 0.05])     # sorted, descending
+print(p.cumsum(dim=0))                       # [0.50, 0.80, 0.95, 1.00]  inclusive
+print(p.cumsum(dim=0) - p)                   # [0.00, 0.50, 0.80, 0.95]  exclusive
+print((p.cumsum(dim=0) - p) < 0.7)           # keep [True, True, False, False]: 0.5 + 0.3 >= 0.7
+'''),
     ],
     "exercises_intro": r'''
 ---
 # ✏️ Exercises
 
-Implement the five functions below. Each one has a debug cell you can use before you submit.
+Implement the six functions below. Each one has a debug cell you can use before you submit.
 ''',
     "exercises": [
         {
@@ -262,6 +278,32 @@ ts = [torch.tensor([3., 0.]), torch.tensor([[0., 4.]])]
 print(global_l2_norm(ts))   # expect tensor(5.)
 ''',
         },
+        {
+            "spec": r'''
+### Exercise 6: `exclusive_cumsum(x, dim=-1)`
+
+For each position, the sum of all elements **strictly before** it along `dim`.
+
+- `x`: any shape
+- returns: same shape; `out[..., 0] == 0` and `out[..., i] = x[..., 0] + … + x[..., i-1]`
+
+*#32 Top-p keeps sorted token `i` while `exclusive_cumsum(sorted_probs)[i] < p`.*
+''',
+            "stub": r'''
+def exclusive_cumsum(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def exclusive_cumsum(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    return x.cumsum(dim=dim) - x
+''',
+            "debug": r'''
+print(exclusive_cumsum(torch.tensor([[1., 2., 3., 4.],
+                                     [0.5, 0.25, 0.25, 0.]])))
+# expect [[0., 1., 3., 6.],
+#         [0., 0.5, 0.75, 1.]]
+''',
+        },
     ],
     # Problem number -> what it reuses from this notebook ("What this unlocks" section)
     "unlocks": [
@@ -273,6 +315,7 @@ print(global_l2_norm(ts))   # expect tensor(5.)
         (12, "Dividing by a summed normalizer, like `normalize_rows`"),
         (21, "`global_l2_norm`: the total norm across all parameter gradients"),
         (25, "`stable_shift` with a running max: the online-softmax trick"),
+        (32, "`exclusive_cumsum` of the sorted probabilities decides which tokens top-p keeps"),
         (36, "Per-row `abs().amax(dim=1, keepdim=True)` for the quantization scale"),
         (38, "Per-group mean and **biased** std of rewards for the advantages"),
         (41, "`masked_mean`: average a per-token loss over valid tokens only"),

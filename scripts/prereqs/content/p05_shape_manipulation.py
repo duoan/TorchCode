@@ -9,6 +9,7 @@ NOTEBOOK = {
     "file": "00_p05_shape_manipulation",
     "task_id": "p05_shape_manipulation",
     "title": "Shape Manipulation",
+    "imports": "import torch\nimport torch.nn.functional as F",
     "intro": r'''
 # 🔵 Prerequisite 5: Shape Manipulation
 
@@ -21,6 +22,7 @@ In practice, most attention bugs are shape bugs.
 3. `squeeze` / `unsqueeze` / `flatten`
 4. `cat` vs `stack`
 5. `repeat_interleave` vs `repeat`
+6. Sliding windows with `F.pad` and `unfold`
 
 ### Exercises
 | # | Function | Shows up in |
@@ -30,9 +32,11 @@ In practice, most attention bugs are shape bugs.
 | 3 | `repeat_kv(x, n_rep)` | #10 GQA |
 | 4 | `interleave(a, b)` | #24 RoPE |
 | 5 | `patchify(img, patch_size)` | #27 ViT Patch Embedding |
+| 6 | `sliding_windows(x, k, stride, padding)` | #22 Conv2d |
 
 ### Rules
-- **No Python loops.** Use only view/reshape/transpose/permute/cat/stack/repeat-style ops.
+- **No Python loops.** Use only view/reshape/transpose/permute/cat/stack/repeat-style ops, plus `unfold` and `F.pad` (Exercise 6).
+- Do **not** use `F.unfold` (the im2col function) or `F.conv2d`.
 - Do **not** use `einops`.
 ''',
     "lesson": [
@@ -106,6 +110,26 @@ Both copy data, but in a different **order**:
 x = torch.tensor([1, 2, 3])
 print(x.repeat_interleave(2))   # [1, 1, 2, 2, 3, 3]: each element repeated in place
 print(x.repeat(2))              # [1, 2, 3, 1, 2, 3]: the whole tensor tiled
+'''),
+        ("md", r'''
+## 6. Sliding windows: `F.pad` and `unfold`
+
+`x.unfold(dim, size, step)` returns a **view** containing every window of length `size` along `dim`, taken every `step` elements. The windows become a **new last dim**.
+Unfold dim 2 and then dim 3 of an image `(B, C, H, W)` to get every `k × k` patch: `(B, C, H_out, W_out, k, k)`.
+
+The number of windows along a dim of size `H`, with padding `p` and stride `s`:
+
+$$H_{out} = \left\lfloor \frac{H + 2p - k}{s} \right\rfloor + 1$$
+
+`F.pad(x, (left, right, top, bottom))` pads the **last** dims first: the first pair pads the last dim, the second pair the one before it.
+'''),
+        ("code", r'''
+x = torch.arange(16.).view(1, 1, 4, 4)
+w = x.unfold(2, 2, 2).unfold(3, 2, 2)      # 2x2 windows, stride 2
+print(w.shape)                             # (1, 1, 2, 2, 2, 2)
+print(w[0, 0, 0, 1])                       # top-right window: [[2, 3], [6, 7]]
+print(F.pad(x, (1, 1, 1, 1)).shape)        # (1, 1, 6, 6): one zero on every side
+print(x.unfold(3, 3, 1).shape)             # 1-D windows along W: (1, 1, 4, 2, 3)
 '''),
     ],
     "exercises_intro": r'''
@@ -255,6 +279,35 @@ print(patches[0])
 #         [10, 11, 14, 15]]   bottom-right
 ''',
         },
+        {
+            "spec": r'''
+### Exercise 6: `sliding_windows(x, k, stride=1, padding=0)`
+
+Extract every `k × k` window of an image batch, as a convolution sees it.
+
+- `x`: `(B, C, H, W)`
+- zero-pad `padding` pixels on **every** side first, then take windows of size `k` every `stride` pixels
+- returns: `(B, C, H_out, W_out, k, k)` with `H_out = (H + 2·padding − k) // stride + 1` (same for `W_out`)
+
+*#22 Conv2d is exactly this followed by P6's `patch_conv`.*
+''',
+            "stub": r'''
+def sliding_windows(x: torch.Tensor, k: int, stride: int = 1, padding: int = 0) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def sliding_windows(x: torch.Tensor, k: int, stride: int = 1, padding: int = 0) -> torch.Tensor:
+    if padding > 0:
+        x = F.pad(x, (padding, padding, padding, padding))
+    return x.unfold(2, k, stride).unfold(3, k, stride)
+''',
+            "debug": r'''
+x = torch.arange(16.).view(1, 1, 4, 4)
+win = sliding_windows(x, k=3, stride=1, padding=1)
+print(win.shape)          # expect torch.Size([1, 1, 4, 4, 3, 3])
+print(win[0, 0, 0, 0])    # expect [[0, 0, 0], [0, 0, 1], [0, 4, 5]]: top-left window, padded
+''',
+        },
     ],
     # Problem number -> what it reuses from this notebook ("What this unlocks" section)
     "unlocks": [
@@ -264,6 +317,7 @@ print(patches[0])
         (13, "Split/merge heads inside a full pre-norm transformer block"),
         (14, "Split/merge heads, plus `torch.cat` of past and new keys along the sequence dim"),
         (24, "`interleave`: put rotated even/odd pairs back in order"),
+        (22, "`sliding_windows`: `F.pad` + `unfold`, the patch extraction inside Conv2d"),
         (27, "`patchify`: the reshape → permute → reshape at the heart of ViT"),
         (28, "`reshape(-1, D)` to flatten `(B, S, D)` tokens for routing, then reshape back"),
     ],

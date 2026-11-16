@@ -11,6 +11,7 @@ TASK = {
         "channel_stats",
         "masked_mean",
         "global_l2_norm",
+        "exclusive_cumsum",
     ],
     # One bullet per exercise (rendered as markdown in the web UI)
     "hint": (
@@ -18,7 +19,8 @@ TASK = {
         "- `normalize_rows`: divide by `x.sum(dim=-1, keepdim=True)`. Without `keepdim` a square input divides by the wrong axis.\n"
         "- `channel_stats`: reduce over `dim=(0, 2, 3)`, and pass `unbiased=False` to `var`.\n"
         "- `masked_mean`: turn the mask into `x.dtype` with shape `(B, S, 1)`, sum `x * m` over dim 1, and divide by `m.sum(dim=1).clamp_min(1)`.\n"
-        "- `global_l2_norm`: reduce each tensor to `t.pow(2).sum()`, stack the scalars, sum, then `sqrt`."
+        "- `global_l2_norm`: reduce each tensor to `t.pow(2).sum()`, stack the scalars, sum, then `sqrt`.\n"
+        "- `exclusive_cumsum`: `x.cumsum(dim) - x` removes each element from its own running total."
     ),
     "tests": [
         {
@@ -122,6 +124,33 @@ assert out.ndim == 0, f'Return a 0-d tensor, got shape {tuple(out.shape)}'
 expected = torch.cat([t.flatten() for t in ts]).norm()
 assert torch.allclose(out, expected, atol=1e-5), f'Expected {expected.item():.5f}, got {out.item():.5f}'
 assert torch.allclose(global_l2_norm([torch.tensor([3., 0.]), torch.tensor([[0., 4.]])]), torch.tensor(5.)), '3-4-5 check failed'
+""",
+        },
+        {
+            "name": "exclusive_cumsum: values and dims",
+            "code": """
+import torch
+x = torch.tensor([[1., 2., 3., 4.], [0.5, 0.25, 0.25, 0.]])
+out = exclusive_cumsum(x)
+assert isinstance(out, torch.Tensor) and out.shape == x.shape, f'Expected shape {tuple(x.shape)}'
+expected = torch.tensor([[0., 1., 3., 6.], [0., 0.5, 0.75, 1.]])
+if torch.allclose(out, x.cumsum(-1)):
+    raise AssertionError('That is the inclusive cumsum: exclude the element itself')
+assert torch.allclose(out, expected), f'Got {out}'
+y = torch.randn(4, 3, 5)
+assert torch.allclose(exclusive_cumsum(y, dim=1), y.cumsum(1) - y, atol=1e-6), 'dim argument not respected'
+assert torch.equal(exclusive_cumsum(y, dim=1)[:, 0], torch.zeros(4, 5)), 'The first position must be 0'
+""",
+        },
+        {
+            "name": "exclusive_cumsum: top-p keep mask and gradient",
+            "code": """
+import torch
+p = torch.tensor([0.5, 0.3, 0.15, 0.05], requires_grad=True)
+keep = exclusive_cumsum(p, dim=0) < 0.7
+assert keep.tolist() == [True, True, False, False], f'Top-p (p=0.7) should keep the first two tokens, got {keep.tolist()}'
+exclusive_cumsum(p, dim=0).sum().backward()
+assert torch.allclose(p.grad, torch.tensor([3., 2., 1., 0.])), f'Gradient should count later positions, got {p.grad}'
 """,
         },
     ],

@@ -11,6 +11,7 @@ TASK = {
         "repeat_kv",
         "interleave",
         "patchify",
+        "sliding_windows",
     ],
     # One bullet per exercise (rendered as markdown in the web UI)
     "hint": (
@@ -18,7 +19,8 @@ TASK = {
         "- `merge_heads`: transpose back to `(B, S, H, d)`, then `.contiguous().view(B, S, H * d)` (or `.reshape`). `view` alone fails after a transpose.\n"
         "- `repeat_kv`: `x.repeat_interleave(n_rep, dim=1)` repeats each head in place; `repeat` would tile the whole set instead.\n"
         "- `interleave`: `torch.stack([a, b], dim=-1)` gives `(..., N, 2)`; `.flatten(-2)` turns that into `(..., 2N)` in alternating order.\n"
-        "- `patchify`: `reshape(B, C, H/p, p, W/p, p)`, `permute(0, 2, 4, 1, 3, 5)` to `(B, H/p, W/p, C, p, p)`, then reshape to `(B, N, C*p*p)`."
+        "- `patchify`: `reshape(B, C, H/p, p, W/p, p)`, `permute(0, 2, 4, 1, 3, 5)` to `(B, H/p, W/p, C, p, p)`, then reshape to `(B, N, C*p*p)`.\n"
+        "- `sliding_windows`: `F.pad(x, (p, p, p, p))`, then `x.unfold(2, k, stride).unfold(3, k, stride)`."
     ),
     "tests": [
         {
@@ -112,6 +114,36 @@ img = torch.randn(1, 2, 4, 4)
 out = patchify(img, 4)
 assert out.shape == (1, 1, 32), f'Shape mismatch: {out.shape}'
 assert torch.equal(out[0, 0], img.flatten()), 'A single patch should equal the flattened image'
+""",
+        },
+        {
+            "name": "sliding_windows: shapes follow the output-size formula",
+            "code": """
+import torch
+for (H, W, k, s, p) in [(5, 5, 3, 1, 0), (5, 5, 3, 1, 1), (7, 6, 3, 2, 1), (8, 8, 2, 2, 0), (6, 9, 4, 3, 2)]:
+    out = sliding_windows(torch.randn(2, 3, H, W), k, stride=s, padding=p)
+    H_out, W_out = (H + 2 * p - k) // s + 1, (W + 2 * p - k) // s + 1
+    assert isinstance(out, torch.Tensor) and out.shape == (2, 3, H_out, W_out, k, k), f'H={H}, W={W}, k={k}, stride={s}, padding={p}: expected {(2, 3, H_out, W_out, k, k)}, got {getattr(out, "shape", out)}'
+""",
+        },
+        {
+            "name": "sliding_windows: values match im2col and conv2d",
+            "code": """
+import torch
+import torch.nn.functional as F
+torch.manual_seed(0)
+x = torch.randn(2, 3, 7, 6, requires_grad=True)
+k, s, p = 3, 2, 1
+win = sliding_windows(x, k, stride=s, padding=p)
+B, C, Ho, Wo = win.shape[:4]
+ref = F.unfold(x, k, padding=p, stride=s)                       # (B, C*k*k, Ho*Wo)
+mine = win.permute(0, 1, 4, 5, 2, 3).reshape(B, C * k * k, Ho * Wo)
+assert torch.allclose(mine, ref, atol=1e-6), 'Window contents differ from F.unfold (zero padding on every side?)'
+w = torch.randn(4, 3, k, k)
+conv = torch.einsum('bchwij,ocij->bohw', win, w)
+assert torch.allclose(conv, F.conv2d(x, w, stride=s, padding=p), atol=1e-4), 'Windows + patch_conv should equal conv2d'
+conv.sum().backward()
+assert x.grad is not None, 'Gradient should flow back to x'
 """,
         },
     ],

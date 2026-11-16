@@ -23,6 +23,7 @@ These details rarely appear in a problem statement, but they decide whether your
 4. Devices: creating tensors next to an existing one
 5. Python numbers vs tensors: `.item()` and 0-d tensors
 6. In-place operations: the trailing underscore
+7. A reference table of element-wise math functions
 
 ### Exercises
 | # | Function | Shows up in |
@@ -135,6 +136,33 @@ double_inplace(t); print("after in-place:", t)
 m = torch.zeros(2, 3)
 m[0].add_(1)                             # m[0] is a view into m
 print(m)
+'''),
+        ("md", r'''
+## 7. Element-wise math (reference)
+
+These functions work element by element, keep the shape, and support autograd. Problems usually give you the formula; this table gives you the name.
+
+| Math | PyTorch | Used in |
+|------|---------|---------|
+| $e^x$, $\ln x$ | `torch.exp`, `torch.log` (`torch.log1p` for $\ln(1+x)$, see P9) | softmax, losses |
+| $\sin$, $\cos$ | `torch.sin`, `torch.cos` | #24 RoPE |
+| $\mathrm{erf}$ | `torch.erf` | #19 GELU (exact form) |
+| $\sqrt{x}$, $x^p$ | `torch.sqrt`, `x ** p` | norms, init |
+| $\max(x, 0)$, $\max(a, b)$ | `torch.clamp(x, min=0)`, `torch.maximum(a, b)` | ReLU, quantization |
+| $\sigma(x)$, $\tanh x$ | `torch.sigmoid`, `torch.tanh` | gates |
+| SiLU $x\,\sigma(x)$ | `F.silu` | #15 SwiGLU |
+| ELU | `F.elu` | #12 linear-attention feature map |
+| GELU | `F.gelu`, or the module `nn.GELU()` | #13 GPT-2 block |
+
+`torch.nn.functional` (usually imported as `F`) holds plain **functions**. The `nn.X` versions (`nn.GELU()`, `nn.ReLU()`) are **modules** you can put inside `nn.Sequential` (P8). Same math either way.
+'''),
+        ("code", r'''
+import torch.nn.functional as F
+x = torch.linspace(-2, 2, 5)
+print(torch.erf(x))
+print(F.silu(x), x * torch.sigmoid(x))          # same values
+print(F.gelu(x), torch.nn.GELU()(x))            # function vs module
+print(torch.sin(x) ** 2 + torch.cos(x) ** 2)    # all ones
 '''),
     ],
     "exercises_intro": r'''
@@ -279,7 +307,11 @@ print(fan_in_out(torch.empty(16, 3, 5, 5)))     # expect (75, 400)
     "unlocks": [
         (1, "`positive_mask`: ReLU is `x` times a bool mask converted to `x.dtype`"),
         (7, "`scale_inplace_`: running stats are updated in place with `mul_` / `add_`"),
-        (19, "Mixing Python constants like `math.sqrt(2.0)` with tensor math (lesson §5)"),
+        (12, "The ELU feature map `F.elu(x) + 1` (lesson §7)"),
+        (13, "`nn.GELU()` as a module inside the MLP (lesson §7)"),
+        (15, "`F.silu` for the gate (lesson §7)"),
+        (19, "`torch.erf` and Python constants like `math.sqrt(2.0)` in tensor math (lessons §5 and §7)"),
+        (24, "`torch.sin` / `torch.cos` of the angle table (lesson §7)"),
         (20, "`fan_in_out` for the std, and in-place `normal_` (`scale_inplace_`)"),
         (21, "`scale_inplace_` on `p.grad`, and returning the norm as a Python float with `.item()`"),
         (25, "`running_max_init`: `-inf` running max and zero accumulators with the right dtype and device"),

@@ -11,6 +11,7 @@ TASK = {
         "apply_mask",
         "keep_topk",
         "unsort",
+        "group_mean",
     ],
     # One bullet per exercise (rendered as markdown in the web UI)
     "hint": (
@@ -18,7 +19,8 @@ TASK = {
         "- `attention_mask`: build `R = i[:, None] - i[None, :]`; causal is `R < 0`, sliding is `R.abs() > w`, causal_sliding is `(R < 0) | (R > w)`.\n"
         "- `apply_mask`: `scores.masked_fill(mask, float('-inf'))` returns a new tensor and broadcasts the mask.\n"
         "- `keep_topk`: `vals, idx = logits.topk(k, dim=-1)`, then scatter `vals` into `torch.full_like(logits, float('-inf'))`.\n"
-        "- `unsort`: `torch.empty_like(sorted_values).scatter(-1, sort_idx, sorted_values)`."
+        "- `unsort`: `torch.empty_like(sorted_values).scatter(-1, sort_idx, sorted_values)`.\n"
+        "- `group_mean`: `uniq, inv = torch.unique(ids, return_inverse=True)`; sum with `index_add(0, inv, values)`, count with `bincount(inv)`, then index the means with `inv`."
     ),
     "tests": [
         {
@@ -131,6 +133,46 @@ s = s.clone(); s[2:] = float('-inf')
 out = unsort(s, idx)
 expected = torch.tensor([0.3, float('-inf'), 2.0, float('-inf')])
 assert torch.equal(out, expected), f'Got {out}, expected {expected}. Is it a gather instead of a scatter?'
+""",
+        },
+        {
+            "name": "group_mean: arbitrary ids, dtype, gradient",
+            "code": """
+import torch
+ids = torch.tensor([7, 3, 7, 10, 3, 7])
+vals = torch.tensor([1., 2., 3., 4., 5., 8.], dtype=torch.float64, requires_grad=True)
+out = group_mean(vals, ids)
+assert isinstance(out, torch.Tensor) and out.shape == (6,), f'Expected shape (6,), got {getattr(out, "shape", out)}'
+assert out.dtype == torch.float64, f'dtype must match values, got {out.dtype}'
+expected = torch.tensor([4., 3.5, 4., 4., 3.5, 4.], dtype=torch.float64)
+assert torch.allclose(out, expected), f'Expected {expected.tolist()}, got {out.tolist()}'
+out.sum().backward()
+assert torch.allclose(vals.grad, torch.ones(6, dtype=torch.float64)), 'Gradient should flow back to every value'
+""",
+        },
+        {
+            "name": "group_mean: many groups, no loop over groups",
+            "code": """
+import torch
+from torch.overrides import TorchFunctionMode
+class _Count(TorchFunctionMode):
+    def __init__(self): super().__init__(); self.n = 0
+    def __torch_function__(self, func, types, args=(), kwargs=None):
+        self.n += 1
+        return func(*args, **(kwargs or {}))
+torch.manual_seed(0)
+ids = torch.randint(0, 100_000, (5000,))
+vals = torch.randn(5000)
+with _Count() as c:
+    out = group_mean(vals, ids)
+uniq = ids.unique()
+assert c.n < 200, f'{c.n} torch calls for {len(uniq)} groups: looks like a Python loop over groups. Use unique / bincount / index_add'
+ref = torch.empty(5000)
+for g in uniq[:50]:
+    m = ids == g
+    ref[m] = vals[m].mean()
+sel = torch.isin(ids, uniq[:50])
+assert torch.allclose(out[sel], ref[sel], atol=1e-5), 'Wrong values with many groups'
 """,
         },
     ],

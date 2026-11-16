@@ -11,6 +11,7 @@ TASK = {
         "log_sigmoid",
         "kl_from_logits",
         "safe_masked_softmax",
+        "merge_softmax_stats",
     ],
     # One bullet per exercise (rendered as markdown in the web UI)
     "hint": (
@@ -18,7 +19,8 @@ TASK = {
         "- `log_softmax`: `x - stable_logsumexp(x, dim).unsqueeze(dim)`.\n"
         "- `log_sigmoid`: `torch.minimum(x, 0) - torch.log1p(torch.exp(-x.abs()))`.\n"
         "- `kl_from_logits`: `log_p, log_q = log_softmax(p), log_softmax(q)`; `(log_p.exp() * (log_p - log_q)).sum(-1)`.\n"
-        "- `safe_masked_softmax`: `masked_fill(-inf)`, shift by a finite max, `exp`, then divide by `torch.where(denom > 0, denom, 1)`. Not `where(..., e / denom, 0)`."
+        "- `safe_masked_softmax`: `masked_fill(-inf)`, shift by a finite max, `exp`, then divide by `torch.where(denom > 0, denom, 1)`. Not `where(..., e / denom, 0)`.\n"
+        "- `merge_softmax_stats`: `m = torch.maximum(m1, m2)`; rescale each sum by `exp(m_i - m)`; if `m` is `-inf`, shift by 0 instead to avoid `-inf - (-inf)`."
     ),
     "tests": [
         {
@@ -123,6 +125,39 @@ assert torch.equal(out[2], torch.zeros(3)), f'A fully masked row should be all z
 assert torch.allclose(out[:2].sum(-1), torch.ones(2)), 'Other rows must still sum to 1'
 (out * torch.arange(9.).view(3, 3)).sum().backward()
 assert torch.isfinite(scores.grad).all(), f'Gradients must be finite (see the torch.where trap), got\\n{scores.grad}'
+""",
+        },
+        {
+            "name": "merge_softmax_stats: streaming equals logsumexp",
+            "code": """
+import torch
+torch.manual_seed(0)
+x = torch.randn(4, 23) * 10
+m, s = torch.full((4,), float('-inf')), torch.zeros(4)
+for block in x.split(5, dim=1):
+    mb = block.amax(dim=1)
+    res = merge_softmax_stats(m, s, mb, torch.exp(block - mb[:, None]).sum(dim=1))
+    assert isinstance(res, tuple) and len(res) == 2, 'Return a tuple (m, s)'
+    m, s = res
+assert torch.allclose(m, x.amax(dim=1)), 'Merged max should be the row max'
+assert torch.allclose(m + torch.log(s), torch.logsumexp(x, dim=1), atol=1e-4), 'm + log(s) should equal logsumexp over the whole row'
+""",
+        },
+        {
+            "name": "merge_softmax_stats: huge values, empty blocks, symmetry",
+            "code": """
+import torch
+ninf = torch.tensor(float('-inf'))
+a = torch.tensor([1000.0, 1001.0]); b = torch.tensor([1002.0, 3.0])
+sa = (a.max(), torch.exp(a - a.max()).sum()); sb = (b.max(), torch.exp(b - b.max()).sum())
+m, s = merge_softmax_stats(*sa, *sb)
+assert torch.isfinite(s) and torch.allclose(m + torch.log(s), torch.logsumexp(torch.cat([a, b]), 0)), f'Overflow or wrong value with huge inputs: m={m}, s={s}. Rescale each sum by exp(m_i - m)'
+m2, s2 = merge_softmax_stats(*sb, *sa)
+assert torch.allclose(m, m2) and torch.allclose(s, s2), 'Merging should not depend on the order of the blocks'
+m3, s3 = merge_softmax_stats(ninf, torch.tensor(0.0), *sa)
+assert torch.allclose(m3, sa[0]) and torch.allclose(s3, sa[1]), f'Merging with an empty block should return the other block, got ({m3}, {s3})'
+m4, s4 = merge_softmax_stats(ninf, torch.tensor(0.0), ninf, torch.tensor(0.0))
+assert not torch.isnan(s4) and torch.isneginf(m4) and s4 == 0, f'Two empty blocks should give (-inf, 0), got ({m4}, {s4})'
 """,
         },
     ],
