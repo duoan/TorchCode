@@ -43,14 +43,26 @@ function getFilename(path: string): string {
   return path.split('/').pop() || '';
 }
 
-/** Infer task_id from notebook path (e.g. 01_relu.ipynb -> relu, 39_ppo_loss.ipynb -> ppo_loss). */
+/**
+ * Notebook file stems whose judge task id differs.
+ * Keep in sync with TASK_ID_ALIASES in api/parser.py.
+ */
+const TASK_ID_ALIASES: Record<string, string> = {
+  multihead_attention: 'mha'
+};
+
+/**
+ * Infer task_id from notebook path, e.g. 01_relu.ipynb -> relu,
+ * 39_ppo_loss_solution.ipynb -> ppo_loss, 06_multihead_attention.ipynb -> mha.
+ */
 function getTaskIdFromPath(path: string): string | null {
   const base = getFilename(path);
   if (!base.endsWith('.ipynb')) return null;
   const name = base.replace(/\.ipynb$/i, '');
   if (name === '00_welcome') return null;
-  const taskId = name.replace(/^\d+_/, '');
-  return taskId || null;
+  const stem = name.replace(/^\d+_/, '').replace(/_solution$/, '');
+  if (!stem) return null;
+  return TASK_ID_ALIASES[stem] ?? stem;
 }
 
 function getGitHubDir(filename: string): string {

@@ -45,8 +45,9 @@ K = torch.randn(1, 2048, 64)
 V = torch.randn(1, 2048, 64)
 t0 = time.perf_counter()
 for _ in range(10):
-    {fn}(Q, K, V)
+    out = {fn}(Q, K, V)
 elapsed = time.perf_counter() - t0
+assert isinstance(out, torch.Tensor) and out.shape == V.shape, 'Implement linear_attention first: it must return a (B, S, D_v) tensor'
 assert elapsed < 5.0, f'Too slow: {elapsed:.2f}s — should be O(S*D^2) not O(S^2*D)'
 """,
         },
