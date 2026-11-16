@@ -137,6 +137,8 @@ print(torch.tensor([1.0, 4.0]) / math.sqrt(2.0))
 Methods ending in `_` (`add_`, `mul_`, `zero_`, `normal_`, `clamp_`) modify the tensor **in place** and return it.
 Plain assignment such as `x = x * 2` creates a **new** tensor and rebinds the local name. The caller's tensor is unchanged.
 In-place ops on a **view** (like a slice) modify the original tensor too.
+
+So in-place ops are about **whose** tensor you change. Modifying a tensor **you just created** inside your function (`diff = a - b; diff.square_()`) is fine and saves memory. Modifying the **caller's** inputs is what surprises people, and what the "inputs are not modified" tests catch.
 '''),
         ("code", r'''
 def double_rebind(x):

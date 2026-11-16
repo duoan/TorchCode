@@ -92,6 +92,8 @@ All three spellings below are equivalent:
 
 All three return **views** of `b`: nothing is copied and there's no meaningful speed difference, so pick whichever reads most clearly.
 One caution about `view`: `-1` means "infer this size", so on a **multi-dimensional** `x`, `x.view(1, -1, 1)` **flattens** the existing dimensions into one (and fails if `x` is non-contiguous, see P5 §1). When you only want to *add* dimensions, `unsqueeze` or `None` say so directly.
+
+Inside `[...]`, **each `None` adds exactly one dimension** and each `:` keeps one existing dimension. Dimensions you don't mention at the end are kept as they are. So for `a` of shape `(N, D)`, `a[:, None]` is `(N, 1, D)` (the `D` is kept implicitly), while `a[None, :, None]` is `(1, N, 1, D)`, which is 4-D, not 3-D.
 '''),
         ("code", r'''
 x = torch.randn(2, 3, 4)       # (B, C, L)
@@ -101,6 +103,10 @@ b = torch.tensor([10., 20., 30.])  # one value per channel C
 out = x + b[None, :, None]
 print(out.shape)
 print(out[0, :, 0] - x[0, :, 0])   # tensor([10., 20., 30.])
+
+a = torch.randn(5, 2)              # (N, D)
+print(a[:, None].shape)            # torch.Size([5, 1, 2]): one None, D kept
+print(a[None, :, None].shape)      # torch.Size([1, 5, 1, 2]): two Nones -> 4-D
 '''),
         ("md", r'''
 ## 3. Outer operations
@@ -294,7 +300,7 @@ Build the table of rotation angles used by RoPE: `angles[p, k] = positions[p] * 
 - `freqs`: `(F,)` float
 - returns: `(S, F)`
 
-*This is the `angles = pos * freqs` line of #24 RoPE.*
+*This is the `angles = pos * freqs` line of #24 RoPE. It looks repetitive, but each column grows at a different speed: the first frequency is 1, the next ones are 10×, 100×, … smaller. Like clock hands moving at different speeds, the columns together encode position at many scales.*
 ''',
             "stub": r'''
 def outer_angles(positions: torch.Tensor, freqs: torch.Tensor) -> torch.Tensor:
@@ -309,7 +315,10 @@ pos = torch.arange(4).float()
 freqs = 1.0 / (10000 ** (torch.arange(0, 8, 2).float() / 8))
 ang = outer_angles(pos, freqs)
 print(ang.shape)   # expect torch.Size([4, 4])
-print(ang)
+torch.set_printoptions(sci_mode=False, precision=4)   # scientific notation hides that the columns differ
+print(freqs)   # expect [1.0, 0.1, 0.01, 0.001]: each column 10x slower
+print(ang)     # row p = position p times each frequency
+torch.set_printoptions(profile="default")            # back to normal printing
 ''',
         },
         {
@@ -320,9 +329,11 @@ Compute squared Euclidean distances between **every** row of `a` and **every** r
 
 - `a`: `(N, D)`
 - `b`: `(M, D)`
-- returns: `(N, M)` where `out[i, j] = sum_d (a[i, d] - b[j, d])**2`
+- returns: `(N, M)` where `out[i, j] = sum_d (a[i, d] - b[j, d])**2`: **one row per point of `a`, one column per point of `b`**
 
-*Hint: you need a 3-D intermediate of shape `(N, M, D)`.*
+*Hint: build a 3-D intermediate of shape `(N, M, D)`: axis 0 picks a point of `a`, axis 1 a point of `b`, axis 2 a coordinate. To get there, insert **one** size-1 dimension into each input, in **different** places, so their point dimensions spread out against each other while their coordinates stay aligned.*
+
+*Squaring the intermediate in place (`diff.square_()`) is fine: `diff` is a tensor you just created. The rule against in-place ops is about the caller's inputs `a` and `b` (P1 §6).*
 ''',
             "stub": r'''
 def pairwise_sq_dists(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -337,9 +348,11 @@ def pairwise_sq_dists(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 a = torch.tensor([[0., 0.], [1., 1.]])
 b = torch.tensor([[0., 0.], [3., 4.], [1., 0.]])
 print(pairwise_sq_dists(a, b))
-# Expected:
-# [[ 0., 25.,  1.],
-#  [ 2., 13.,  1.]]
+# Expected (rows = points of a, columns = points of b):
+#            b[0]=[0,0]  b[1]=[3,4]  b[2]=[1,0]
+# a[0]=[0,0]     0.         25.          1.
+# a[1]=[1,1]     2.         13.          1.
+# e.g. 25 = (0 - 3)**2 + (0 - 4)**2
 ''',
         },
     ],
