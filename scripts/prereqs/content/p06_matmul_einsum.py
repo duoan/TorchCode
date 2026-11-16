@@ -28,6 +28,10 @@ NOTEBOOK = {
         ('kW', 'kernel width'),
         ('H_out', 'output height'),
         ('W_out', 'output width'),
+        ('m', 'rows of a matrix (§7)'),
+        ('n', 'length of a vector, the shared inner dimension (§7)'),
+        ('k', 'columns of the right-hand matrix (§7)'),
+        ('D', 'number of features (#40 example)'),
     ],
     "intro": r'''
 # 🔵 Prerequisite 6: Matmul & Einsum
@@ -42,6 +46,7 @@ Getting them right is mostly about **shape bookkeeping**: which dims are batch d
 4. `einsum`: name every dim, and the contraction becomes obvious
 5. Associativity and cost: `(A @ B) @ C` vs `A @ (B @ C)`
 6. Solving linear systems without inverting a matrix
+7. `@` with 1-D operands: when a dimension disappears
 
 ### Exercises
 | # | Function | Shows up in |
@@ -168,6 +173,28 @@ print(f"cond(X) = {torch.linalg.cond(X):.3g}, cond(X^T X) = {torch.linalg.cond(X
 Xc = X.clone()
 Xc[:, 2] = Xc[:, 0] + 1e-4 * torch.randn(200, dtype=torch.float64)
 print(f"cond(Xc) = {torch.linalg.cond(Xc):.3g}, cond(Xc^T Xc) = {torch.linalg.cond(Xc.T @ Xc):.3g}")
+'''),
+        ("md", r'''
+## 7. `@` with 1-D operands
+
+`@` treats a 1-D tensor as a **vector** and **removes** that dimension from the result:
+
+| `a` | `b` | `a @ b` |
+|-----|-----|---------|
+| `(n,)` | `(n,)` | `()`: a 0-d scalar (dot product) |
+| `(m, n)` | `(n,)` | `(m,)`: matrix-vector |
+| `(n,)` | `(n, k)` | `(k,)` |
+| `(B, m, n)` | `(n,)` | `(B, m)`: the vector broadcasts over the batch |
+
+To **keep** the dimension, make the vector 2-D: `w[:, None]` is `(n, 1)` and gives `(m, 1)`. #40 depends on this: with `w: (D,)`, `X @ w` is `(N,)` and matches `y: (N,)`; with `w: (D, 1)` it's `(N, 1)`, and `pred - y` silently becomes `(N, N)` (the P2 trap).
+'''),
+        ("code", r'''
+a, b = torch.randn(3), torch.randn(3)
+print((a @ b).shape)                               # torch.Size([]): a scalar
+X, y = torch.randn(5, 3), torch.randn(5)
+print((X @ a).shape, (X @ a[:, None]).shape)       # torch.Size([5]) vs torch.Size([5, 1])
+print(((X @ a[:, None]) - y).shape)                # torch.Size([5, 5]): the (N, 1) vs (N,) trap
+print((torch.randn(2, 5, 3) @ a).shape)            # torch.Size([2, 5])
 '''),
     ],
     "exercises_intro": r'''
@@ -329,6 +356,6 @@ print(torch.allclose(out, x @ (W + 0.5 * B @ A).T, atol=1e-4))       # expect Tr
         (23, "`attention_scores` with `S_q != S_k`"),
         (26, "`lora_forward`: the low-rank update without forming `B @ A`"),
         (36, "`x @ w.T` with the dequantized weight"),
-        (40, "`X @ w + b`, `X.T @ error` for the gradient, and `torch.linalg.lstsq` for the closed form (lesson §6)"),
+        (40, "`X @ w + b` (a 1-D `w` keeps predictions `(N,)`, lesson §7), `X.T @ error` for the gradient, and `torch.linalg.lstsq` for the closed form (lesson §6)"),
     ],
 }

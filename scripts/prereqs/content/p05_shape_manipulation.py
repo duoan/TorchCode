@@ -46,6 +46,7 @@ In practice, most attention bugs are shape bugs.
 6. Sliding windows with `F.pad` and `unfold`
 7. `expand` vs `repeat`, `unflatten`, `movedim`, `roll`, and the `*_as` helpers
 8. Many ways to do it: equivalent reshapes and their trade-offs
+9. `-1` in `view` / `reshape`, and rank-agnostic shapes with `*`
 
 ### Exercises
 | # | Function | Shows up in |
@@ -56,6 +57,7 @@ In practice, most attention bugs are shape bugs.
 | 4 | `interleave(a, b)` | #24 RoPE |
 | 5 | `patchify(img, patch_size)` | #27 ViT Patch Embedding |
 | 6 | `sliding_windows(x, k, stride, padding)` | #22 Conv2d |
+| 7 | `split_last_dim(x, H)` | #06, #10, #14, #23 with any number of leading dims |
 
 ### Rules
 - **No Python loops.** Use only view/reshape/transpose/permute/cat/stack/repeat-style ops, plus `unfold` and `F.pad` (Exercise 6).
@@ -195,6 +197,25 @@ print(torch.equal(a, b))
 
 x = torch.randn(B, S, 12)
 print(torch.equal(x.view(B, S, 3, 4).transpose(1, 2), x.unflatten(-1, (3, 4)).transpose(1, 2)))
+'''),
+        ("md", r'''
+## 9. `-1` and rank-agnostic shapes
+
+- In `view` / `reshape`, **one** dimension may be `-1`: PyTorch works it out from the total number of elements. `x.view(B, S, -1)` merges whatever is left; `x.reshape(-1, D)` flattens all leading dims into one list of rows. Two `-1`s are ambiguous and raise an error.
+- `x.shape` is a tuple, so Python's **star-unpacking** works on it: `*batch, D = x.shape` collects any number of leading dims into a list.
+- Together with `...` (P4 §1), that lets one function handle `(S, D)`, `(B, S, D)` and `(B, H, S, D)`: build the new shape from `x.shape[:-1]` instead of naming every dim.
+'''),
+        ("code", r'''
+x = torch.randn(2, 5, 12)
+print(x.view(2, 5, -1, 4).shape)            # torch.Size([2, 5, 3, 4]): -1 became 12 / 4 = 3
+print(x.reshape(-1, 12).shape)              # torch.Size([10, 12]): all tokens as one list
+*batch, D = x.shape
+print(batch, D)                             # [2, 5] 12
+print(x.view(*x.shape[:-1], 3, 4).shape)    # same split, for any number of leading dims
+try:
+    x.view(-1, -1)
+except RuntimeError as e:
+    print("RuntimeError:", str(e)[:60])
 '''),
     ],
     "exercises_intro": r'''
@@ -373,6 +394,32 @@ print(win.shape)          # expect torch.Size([1, 1, 4, 4, 3, 3])
 print(win[0, 0, 0, 0])    # expect [[0, 0, 0], [0, 0, 1], [0, 4, 5]]: top-left window, padded
 ''',
         },
+        {
+            "spec": r'''
+### Exercise 7: `split_last_dim(x, H)`
+
+Split the last dimension into `H` equal chunks, **whatever the leading dimensions are**.
+
+- `x`: `(..., D)`, contiguous, with `D % H == 0` and any number of leading dims (including none)
+- returns: `(..., H, D // H)` where `out[..., h, :] = x[..., h*d:(h+1)*d]` with `d = D // H`
+- return a **view** (no copy)
+
+*This is the first half of `split_heads` (Exercise 1), without assuming the input is `(B, S, D)`.*
+''',
+            "stub": r'''
+def split_last_dim(x: torch.Tensor, H: int) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def split_last_dim(x: torch.Tensor, H: int) -> torch.Tensor:
+    return x.view(*x.shape[:-1], H, -1)
+''',
+            "debug": r'''
+print(split_last_dim(torch.arange(12.), 3))                    # expect [[0..3], [4..7], [8..11]]
+print(split_last_dim(torch.randn(2, 5, 12), 4).shape)          # expect torch.Size([2, 5, 4, 3])
+print(split_last_dim(torch.randn(2, 3, 5, 8), 2).shape)        # expect torch.Size([2, 3, 5, 2, 4])
+''',
+        },
     ],
     # Problem number -> what it reuses from this notebook ("What this unlocks" section)
     "unlocks": [
@@ -381,7 +428,7 @@ print(win[0, 0, 0, 0])    # expect [[0, 0, 0], [0, 0, 1], [0, 4, 5]]: top-left w
         (10, "`repeat_kv`: share each KV head across a group of query heads"),
         (13, "Split/merge heads inside a full pre-norm transformer block"),
         (14, "Split/merge heads, plus `torch.cat` of past and new keys along the sequence dim"),
-        (24, "`interleave`: put rotated even/odd pairs back in order"),
+        (24, "`interleave`: put rotated even/odd pairs back in order; `split_last_dim`-style reshapes work for any leading dims"),
         (22, "`sliding_windows`: `F.pad` + `unfold`, the patch extraction inside Conv2d"),
         (27, "`patchify`: the reshape → permute → reshape at the heart of ViT"),
         (28, "`reshape(-1, D)` to flatten `(B, S, D)` tokens for routing, then reshape back"),

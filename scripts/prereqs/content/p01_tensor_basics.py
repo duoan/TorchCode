@@ -19,6 +19,10 @@ NOTEBOOK = {
         ('C_in', 'input channels / input features'),
         ('kH', 'kernel height'),
         ('kW', 'kernel width'),
+        ('H', 'input height, in the output-size formula'),
+        ('p', 'padding'),
+        ('k', 'kernel size'),
+        ('s', 'stride'),
     ],
     "intro": r'''
 # 🔵 Prerequisite 1: Tensor Basics
@@ -35,6 +39,7 @@ These details rarely appear in a problem statement, but they decide whether your
 5. Python numbers vs tensors: `.item()` and 0-d tensors
 6. In-place operations: the trailing underscore
 7. A reference table of element-wise math functions
+8. Division and type promotion: `/`, `//`, and mixing dtypes
 
 ### Exercises
 | # | Function | Shows up in |
@@ -174,6 +179,25 @@ print(torch.erf(x))
 print(F.silu(x), x * torch.sigmoid(x))          # same values
 print(F.gelu(x), torch.nn.GELU()(x))            # function vs module
 print(torch.sin(x) ** 2 + torch.cos(x) ** 2)    # all ones
+'''),
+        ("md", r'''
+## 8. Division and type promotion
+
+- **`/` is always true division:** an integer tensor divided by an integer gives **floats** (`7 / 2 = 3.5`).
+- **`//` floor-divides**, rounding toward −∞ like Python: `-7 // 2 = -4`, not `-3`. For rounding toward zero use `torch.div(a, b, rounding_mode="trunc")`.
+- **Mixing dtypes promotes** to the more general type: int with float gives float; float32 with float64 gives float64.
+- **Python numbers don't upcast tensors:** a float16 tensor times `2.5` stays float16. Only a **tensor** of a wider dtype promotes.
+
+Shape formulas like `(H + 2p - k) // s + 1` use the Python ints from `.shape`, so `//` there is plain integer floor division.
+'''),
+        ("code", r'''
+a = torch.tensor([7, -7])
+print(a / 2)                                     # tensor([ 3.5000, -3.5000]): floats
+print(a // 2)                                    # tensor([ 3, -4]): floor
+print(torch.div(a, 2, rounding_mode="trunc"))    # tensor([ 3, -3]): toward zero
+print((torch.tensor([1, 2]) + 0.5).dtype)        # torch.float32
+print((torch.ones(2) + torch.ones(2, dtype=torch.float64)).dtype)   # torch.float64
+print((torch.ones(2, dtype=torch.float16) * 2.5).dtype)            # torch.float16
 '''),
     ],
     "exercises_intro": r'''

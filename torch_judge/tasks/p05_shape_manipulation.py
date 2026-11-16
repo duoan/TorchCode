@@ -12,6 +12,7 @@ TASK = {
         "interleave",
         "patchify",
         "sliding_windows",
+        "split_last_dim",
     ],
     # One bullet per exercise (rendered as markdown in the web UI)
     "hint": (
@@ -20,7 +21,8 @@ TASK = {
         "- `repeat_kv`: `x.repeat_interleave(n_rep, dim=1)` repeats each head in place; `repeat` would tile the whole set instead.\n"
         "- `interleave`: `torch.stack([a, b], dim=-1)` gives `(..., N, 2)`; `.flatten(-2)` turns that into `(..., 2N)` in alternating order.\n"
         "- `patchify`: `reshape(B, C, H/p, p, W/p, p)`, `permute(0, 2, 4, 1, 3, 5)` to `(B, H/p, W/p, C, p, p)`, then reshape to `(B, N, C*p*p)`.\n"
-        "- `sliding_windows`: `F.pad(x, (p, p, p, p))`, then `x.unfold(2, k, stride).unfold(3, k, stride)`."
+        "- `sliding_windows`: `F.pad(x, (p, p, p, p))`, then `x.unfold(2, k, stride).unfold(3, k, stride)`.\n"
+        "- `split_last_dim`: `x.view(*x.shape[:-1], H, -1)`: build the shape from `x.shape[:-1]` instead of unpacking a fixed number of dims."
     ),
     "tests": [
         {
@@ -144,6 +146,28 @@ conv = torch.einsum('bchwij,ocij->bohw', win, w)
 assert torch.allclose(conv, F.conv2d(x, w, stride=s, padding=p), atol=1e-4), 'Windows + patch_conv should equal conv2d'
 conv.sum().backward()
 assert x.grad is not None, 'Gradient should flow back to x'
+""",
+        },
+        {
+            "name": "split_last_dim: any number of leading dims",
+            "code": """
+import torch
+for shape, H in [((12,), 3), ((2, 5, 12), 4), ((2, 3, 5, 8), 2), ((4, 6), 1), ((1, 1, 1, 6), 6)]:
+    x = torch.arange(int(torch.tensor(shape).prod())).float().view(shape)
+    out = split_last_dim(x, H)
+    d = shape[-1] // H
+    assert isinstance(out, torch.Tensor) and out.shape == (*shape[:-1], H, d), f'{shape}, H={H}: expected {(*shape[:-1], H, d)}, got {getattr(out, "shape", out)}. Build the shape from x.shape[:-1]'
+    for h in range(H):
+        assert torch.equal(out[..., h, :], x[..., h * d:(h + 1) * d]), f'{shape}, H={H}: chunk {h} should be features {h*d}:{(h+1)*d}'
+""",
+        },
+        {
+            "name": "split_last_dim: returns a view",
+            "code": """
+import torch
+x = torch.randn(2, 3, 8)
+out = split_last_dim(x, 4)
+assert out.untyped_storage().data_ptr() == x.untyped_storage().data_ptr(), 'Return a view of x (view / reshape on a contiguous tensor), not a copy'
 """,
         },
     ],

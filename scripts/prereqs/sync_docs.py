@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Regenerate the bonus-track tables in README.md, CURRICULUM.md and templates/00_welcome.ipynb.
+"""Keep the hand-maintained doc tables in sync with the prerequisite and bonus content files.
 
-Rows come from scripts/prereqs/curriculum.py (BONUS) and the bonus content files, so the
-three tables can't drift apart. Run via `make prereqs`.
+- Bonus track: the tables in README.md, CURRICULUM.md and templates/00_welcome.ipynb are
+  regenerated from curriculum.BONUS and the bonus content files.
+- Prerequisites: the Exercises and Unlocks columns of each P-row in README.md and CURRICULUM.md
+  are rewritten from the content files (the other columns stay hand-written).
+
+Run via `make prereqs`.
 """
 from __future__ import annotations
 
@@ -31,6 +35,28 @@ def replace_block(text: str, start: str, end: str, body: str, where: str) -> str
     if i < 0 or j < 0 or j < i:
         raise SystemExit(f"{where}: markers {start!r} / {end!r} not found")
     return text[: i + len(start)] + "\n" + body + text[j:]
+
+
+def sync_prereq_rows() -> None:
+    prereqs = {nb["prereq_id"]: nb for nb in load_notebooks() if nb["prereq_id"].startswith("P")}
+    readme = ROOT / "README.md"
+    lines = readme.read_text(encoding="utf-8").split("\n")
+    for i, line in enumerate(lines):
+        m = re.match(r"\| (P\d+) \| (<a href.*?</a> <a href.*?</a>) \| .* \| .* \|$", line)
+        if m and m.group(1) in prereqs:
+            nb = prereqs[m.group(1)]
+            nums = sorted(n for n, _ in nb["unlocks"])
+            lines[i] = f"| {m.group(1)} | {m.group(2)} | {exercise_names(nb)} | {', '.join(f'#{n:02d}' for n in nums)} |"
+    readme.write_text("\n".join(lines), encoding="utf-8")
+    curr = ROOT / "CURRICULUM.md"
+    lines = curr.read_text(encoding="utf-8").split("\n")
+    for i, line in enumerate(lines):
+        m = re.match(r"\| (P\d+) \| (\[[^\]]+\]\([^)]+\)) \| (.*?) \| (.*?) \| (.*?) \| ✅ \|$", line)
+        if m and m.group(1) in prereqs:
+            nb = prereqs[m.group(1)]
+            nums = sorted(n for n, _ in nb["unlocks"])
+            lines[i] = f"| {m.group(1)} | {m.group(2)} | {m.group(3)} | {exercise_names(nb)} | {', '.join(f'{n:02d}' for n in nums)} | ✅ |"
+    curr.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> int:
@@ -68,7 +94,8 @@ def main() -> int:
     cell["source"] = ("## ⭐ Bonus (optional)\n\nTechniques beyond the problems. No problem requires them.\n\n"
                       "| # | Bonus | Template | Solution |\n|:---:|---|:---:|:---:|\n" + "\n".join(welcome_rows)).splitlines(keepends=True)
     wpath.write_text(json.dumps(nb, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"bonus tables: {len(welcome_rows)} built, {len(curriculum.BONUS) - len(welcome_rows)} planned")
+    sync_prereq_rows()
+    print(f"bonus tables: {len(welcome_rows)} built, {len(curriculum.BONUS) - len(welcome_rows)} planned; prerequisite rows synced")
     return 0
 
 

@@ -97,6 +97,9 @@ def load_notebooks() -> list[dict]:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         nb = dict(mod.NOTEBOOK, source=f"scripts/prereqs/content/{path.name}")
+        nums = [n for n, _ in nb["unlocks"]]
+        if len(nums) != len(set(nums)):
+            raise SystemExit(f"{path.name}: duplicate problem numbers in unlocks: {sorted({n for n in nums if nums.count(n) > 1})}")
         if nb["task_id"] not in TASKS:
             raise SystemExit(f"{path.name}: no judge task torch_judge/tasks/{nb['task_id']}.py")
         notebooks.append(nb)

@@ -19,6 +19,8 @@ NOTEBOOK = {
         ('n', 'sequence length for `attention_mask`'),
         ('w', 'window size'),
         ('G', 'number of groups (`group_mean`)'),
+        ('S', 'sequence length (tokens)'),
+        ('D', 'feature dimension'),
     ],
     "intro": r'''
 # 🔵 Prerequisite 4: Indexing & Masking
@@ -28,7 +30,7 @@ Picking the logit of the correct class, looking up embeddings, hiding future tok
 PyTorch has several ways to do this (slicing, integer "fancy" indexing, boolean masks, `masked_fill`, `topk`, `gather`, `scatter`). Picking the right one keeps the code loop-free and differentiable.
 
 ### What you'll learn
-1. Slicing, including strides like `x[..., 0::2]`
+1. Slicing: `:` vs `...` vs `None`, steps, and negative indices
 2. Integer (fancy) indexing: `weight[indices]` and `x[rows, cols]`
 3. Boolean masks: reading `x[mask]` and writing `x[mask] = ...`
 4. `masked_fill` with `-inf`, and building masks with `triu` / comparisons
@@ -54,17 +56,40 @@ PyTorch has several ways to do this (slicing, integer "fancy" indexing, boolean 
 ''',
     "lesson": [
         ("md", r'''
-## 1. Slicing
+## 1. Slicing: `:`, `...`, `None`, and steps
 
-Slices return **views** (no copy). A step selects every k-th element: `x[..., 0::2]` takes even positions and `x[..., 1::2]` odd ones. RoPE uses exactly this to split vectors into pairs.
-`...` (Ellipsis) means "all leading dims", so the same code works for `(S, D)` and `(B, H, S, D)`.
+Inside `x[...]`, each entry addresses dimensions from the left:
+- **`:`** keeps **exactly one** dimension whole. `0` (an integer) picks one position and **removes** that dimension.
+- **`...`** (Ellipsis) stands for **as many `:` as needed** (zero or more), so the entries after it address the **last** dimensions. At most one `...` per index.
+- **`None`** inserts a new size-1 dimension at that spot (P2).
+
+With `x` of shape `(B, S, D)` (batch, tokens, features) these look alike but are not:
+
+| Index | Shape | Meaning |
+|-------|-------|---------|
+| `x[:, 0]` | `(B, D)` | the **first token** of every sequence |
+| `x[..., 0]` | `(B, S)` | the **first feature** of every token |
+| `x[0]`, `x[0, ...]` | `(S, D)` | the first sequence |
+| `x[..., None]` / `x[:, None]` | `(B, S, D, 1)` / `(B, 1, S, D)` | a new size-1 dim at the end / after dim 0 |
+
+Because `...` absorbs any number of leading dims, `x[..., 0::2]` (every other feature, as RoPE uses) works unchanged for `(S, D)` and `(B, H, S, D)`.
+
+**Steps and negatives:** `start:stop:step` selects every `step`-th element; negative **indices** count from the end (`x[:, -1]` is the last token). But PyTorch does **not** allow negative **steps**: NumPy's `x[::-1]` raises an error; use `x.flip(dim)` (which copies). Plain slices return **views**, so they share memory with `x`.
 '''),
         ("code", r'''
-x = torch.arange(12).view(2, 6)
-print(x[:, 1:4])        # columns 1..3
-print(x[..., 0::2])     # even columns
-print(x[..., 1::2])     # odd columns
-print(x[-1])            # last row
+x = torch.arange(2 * 3 * 4).view(2, 3, 4)     # (B, S, D) = (2, 3, 4): every size different
+print(x[:, 0].shape)                  # torch.Size([2, 4]): token 0 of each sequence
+print(x[..., 0].shape)                # torch.Size([2, 3]): feature 0 of every token
+print(x[0].shape, x[0, ...].shape)    # both torch.Size([3, 4])
+print(x[..., None].shape, x[:, None].shape)   # (2, 3, 4, 1) and (2, 1, 3, 4)
+print(x[..., 0::2].shape)             # torch.Size([2, 3, 2]): even features
+print(x[:, -1])                       # the last token of each sequence
+
+try:
+    x[..., ::-1]
+except ValueError as e:
+    print("ValueError:", e)
+print(x[0, 0], x[0, 0].flip(0))       # [0, 1, 2, 3] -> [3, 2, 1, 0]
 '''),
         ("md", r'''
 ## 2. Integer (fancy) indexing
