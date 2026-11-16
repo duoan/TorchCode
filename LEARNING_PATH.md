@@ -116,3 +116,11 @@ Preference and policy-gradient losses used to post-train LLMs.
 | 2 | 39 | **PPO Loss** | 🔴 Hard | 🔵 [P7](templates/00_p07_autograd.ipynb), 🔵 [P9](templates/00_p09_numerical_stability.ipynb) | [Template](templates/39_ppo_loss.ipynb) · [Solution](solutions/39_ppo_loss_solution.ipynb) · [Colab](https://colab.research.google.com/github/lalo/TorchCode/blob/master/templates/39_ppo_loss.ipynb) |
 | 3 | 38 | **GRPO Loss** | 🔴 Hard | 🔵 [P3](templates/00_p03_reductions.ipynb), 🔵 [P4](templates/00_p04_indexing_masking.ipynb), 🔵 [P7](templates/00_p07_autograd.ipynb), 🔵 [P9](templates/00_p09_numerical_stability.ipynb) | [Template](templates/38_grpo_loss.ipynb) · [Solution](solutions/38_grpo_loss_solution.ipynb) · [Colab](https://colab.research.google.com/github/lalo/TorchCode/blob/master/templates/38_grpo_loss.ipynb) |
 | 4 | 41 | **OPD Loss** | 🔴 Hard | 🔵 [P3](templates/00_p03_reductions.ipynb), 🔵 [P7](templates/00_p07_autograd.ipynb), 🔵 [P9](templates/00_p09_numerical_stability.ipynb) | [Template](templates/41_opd_loss.ipynb) · [Solution](solutions/41_opd_loss_solution.ipynb) · [Colab](https://colab.research.google.com/github/lalo/TorchCode/blob/master/templates/41_opd_loss.ipynb) |
+
+## Track B: Bonus (optional)
+
+Techniques beyond the problems that come up in interviews and real codebases. No problem requires them; each one lists problems to re-solve with it.
+
+| # | Bonus | Try it on | Links |
+|:---:|---|---|---|
+| ⭐ B1 | **Custom autograd functions** | [#1](templates/01_relu.ipynb), [#2](templates/02_softmax.ipynb), [#3](templates/03_linear.ipynb), [#16](templates/16_cross_entropy.ipynb), [#19](templates/19_gelu.ipynb), [#36](templates/36_int8_quantization.ipynb) | [Template](templates/00_b01_custom_autograd.ipynb) · [Solution](solutions/00_b01_custom_autograd_solution.ipynb) · [Colab](https://colab.research.google.com/github/lalo/TorchCode/blob/master/templates/00_b01_custom_autograd.ipynb) |

@@ -48,8 +48,16 @@ HOW_TO_USE = """
 2. **Do the exercises in order.** Each one has its own `✏️ YOUR IMPLEMENTATION HERE` cell, followed by a debug cell for checking shapes before you submit.
 3. **Submit at any time** with the `check("{task_id}")` cell at the bottom. It grades every exercise at once, and each test is named after its exercise, so a partial score shows which ones are left.
 4. **Stuck?** `hint("{task_id}")` gives one hint per exercise; `{file}_solution.ipynb` has the reference code.
-5. **Already comfortable with this skill?** Prerequisites are optional. Skip straight to the problems listed in **🔓 What this unlocks** at the bottom.
+{last_item}
 """
+HOW_TO_LAST_PREREQ = ("5. **Already comfortable with this skill?** Prerequisites are optional. "
+                      "Skip straight to the problems listed in **🔓 What this unlocks** at the bottom.")
+HOW_TO_LAST_BONUS = ("5. **This is a bonus notebook.** No problem requires it. Try what you learn on the problems "
+                     "listed in **🔁 Where to use it** at the bottom.")
+
+
+def is_bonus(nb_def: dict) -> bool:
+    return nb_def["prereq_id"].startswith("B")
 
 COLAB_CELL = """# Install torch-judge in Colab (no-op in JupyterLab/Docker)
 try:
@@ -83,7 +91,7 @@ def load_problems() -> dict[int, tuple[str, str, str]]:
 
 def load_notebooks() -> list[dict]:
     notebooks = []
-    for path in sorted((HERE / "content").glob("p*.py")):
+    for path in sorted((HERE / "content").glob("[pb][0-9]*.py")):   # p = prerequisite, b = bonus
         spec = importlib.util.spec_from_file_location(f"prereq_{path.stem}", path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
@@ -114,10 +122,16 @@ def unlocks_cell(nb_def: dict, problems: dict) -> dict:
         links = (f"[Open]({stem}.ipynb) · <a href=\"{REPO_URL}/templates/{stem}.ipynb\" target=\"_blank\">GitHub</a>"
                  f" · <a href=\"{COLAB_URL}/templates/{stem}.ipynb\" target=\"_blank\">Colab</a>")
         rows.append(f"| #{num} | {name} | {DIFF_ICON[diff]} {diff} | {reuse} | {links} |")
+    if is_bonus(nb_def):
+        heading, lead, col = ("🔁 Where to use it",
+                              f"Re-solve these problems using **{nb_def['title']}**:", "How")
+    else:
+        heading, lead, col = ("🔓 What this unlocks",
+                              f"With **{nb_def['title']}** in your toolkit, you're ready for these problems:",
+                              "What you'll reuse")
     return md(
-        "---\n## 🔓 What this unlocks\n\n"
-        f"With **{nb_def['title']}** in your toolkit, you're ready for these problems:\n\n"
-        "| # | Problem | Difficulty | What you'll reuse | Links |\n"
+        f"---\n## {heading}\n\n{lead}\n\n"
+        f"| # | Problem | Difficulty | {col} | Links |\n"
         "|:---:|---|:---:|---|---|\n" + "\n".join(rows) + "\n\n"
         f"🗺️ See the full recommended order in "
         f"<a href=\"{REPO_URL}/LEARNING_PATH.md\" target=\"_blank\">LEARNING_PATH.md</a>."
@@ -134,7 +148,9 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
                   f"`{nb_def['file']}.ipynb`. Try the template first!")
     else:
         header = (nb_def["intro"].strip("\n") + "\n\n"
-                  + HOW_TO_USE.strip("\n").format(task_id=task_id, file=nb_def["file"]))
+                  + HOW_TO_USE.strip("\n").format(
+                      task_id=task_id, file=nb_def["file"],
+                      last_item=HOW_TO_LAST_BONUS if is_bonus(nb_def) else HOW_TO_LAST_PREREQ))
     cells = [md(header), code(COLAB_CELL), code(nb_def.get("imports", "import torch"))]
     for kind, payload in nb_def["lesson"]:
         cells.append(md(payload) if kind == "md" else code(payload))
@@ -180,10 +196,12 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
 # ── LEARNING_PATH.md ────────────────────────────────────────────────────────
 
 def render_learning_path(notebooks: list[dict], problems: dict) -> str:
-    by_id = {nb["prereq_id"]: nb for nb in notebooks}
+    bonus = [nb for nb in notebooks if is_bonus(nb)]
+    by_id = {nb["prereq_id"]: nb for nb in notebooks if not is_bonus(nb)}
     unknown = set(by_id) - {pid for pid, _, _ in curriculum.PREREQS}
+    unknown |= {nb["prereq_id"] for nb in bonus} - {bid for bid, _ in curriculum.BONUS}
     if unknown:
-        raise SystemExit(f"Notebooks with prereq_id not listed in curriculum.PREREQS: {sorted(unknown)}")
+        raise SystemExit(f"Notebooks with an id not listed in curriculum.PREREQS / BONUS: {sorted(unknown)}")
 
     prereqs = []  # (id, title, notebook file stem or None, unlocked problem numbers)
     for pid, title, planned in curriculum.PREREQS:
@@ -244,6 +262,17 @@ def render_learning_path(notebooks: list[dict], problems: dict) -> str:
             pre = prereqs_of.get(n, [])
             pre_txt = ", ".join(("🔵 " if s else "⚪ ") + prereq_link(pid, s) for pid, s in pre) or "—"
             out.append(f"| {step} | {n} | **{name}** | {DIFF_ICON[diff]} {diff} | {pre_txt} | {problem_links(stem)} |")
+    if bonus:
+        bonus_by_id = {nb["prereq_id"]: nb for nb in bonus}
+        out += ["", "## Track B: Bonus (optional)", "",
+                "Techniques beyond the problems that come up in interviews and real codebases. No problem requires them; "
+                "each one lists problems to re-solve with it.", "",
+                "| # | Bonus | Try it on | Links |", "|:---:|---|---|---|"]
+        for bid, title in curriculum.BONUS:
+            nb = bonus_by_id.get(bid)
+            if nb:
+                tries = ", ".join(f"[#{n}](templates/{problems[n][0]}.ipynb)" for n, _ in sorted(nb["unlocks"]))
+                out.append(f"| ⭐ {bid} | **{title}** | {tries} | {problem_links(nb['file'])} |")
     out.append("")
     return "\n".join(out)
 

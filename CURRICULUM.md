@@ -27,6 +27,16 @@ This curriculum adds a **Track 0: Prerequisites** that teaches exactly those ski
 | P9 | [Numerical stability & log-space](templates/00_p09_numerical_stability.ipynb) | float32 limits, max-subtraction, `logsumexp`, `log_softmax` vs `log(softmax)`, stable `log σ`, log-space sums and ratios, the `torch.where` NaN-gradient trap, fully masked rows, online softmax (merging block statistics) | `stable_logsumexp`, `log_softmax`, `log_sigmoid`, `kl_from_logits`, `safe_masked_softmax`, `merge_softmax_stats` | 02, 16, 25, 32, 33, 34, 37, 38, 39, 41 | ✅ |
 | P10 | [Training loop & randomness](templates/00_p10_training_loop.ipynb) | The canonical loop, `param_groups` and the LR, seeds and `torch.Generator`, `rand`/`bernoulli`/`multinomial`/`randperm`, shuffling and mini-batches, `eval()` + `no_grad()`; more: `Dataset`/`DataLoader`, `lr_scheduler`; many-ways box | `train_steps`, `set_lr_`, `keep_mask`, `sample_tokens`, `shuffled_batches` | 17, 29, 30, 31, 32, 34, 40 | ✅ |
 
+## Track B: Bonus (optional)
+
+Notebooks beyond the problems: techniques interviewers ask about and real code uses, but that no problem requires. They work exactly like prerequisites (content in `scripts/prereqs/content/bNN_*.py`, `difficulty: "Bonus"`, same build and verify), except that they end with **🔁 Where to use it** (problems to re-solve with the technique) instead of "What this unlocks", and they don't appear in the problems' "Builds on" column.
+
+| # | Notebook | Covers | Exercises | Try it on | Status |
+|---|----------|--------|-----------|-----------|:------:|
+| B1 | [Custom autograd functions](templates/00_b01_custom_autograd.ipynb) | `torch.autograd.Function` (`forward`, `backward`, `ctx`), the backward contract, `gradcheck`, deriving backward rules (element-wise, matmul, reductions, softmax), gradient reversal | `ReLUFn`, `SigmoidFn`, `LinearFn`, `SoftmaxFn`, `FakeQuantFn` | 01, 02, 03, 16, 19, 36 | ✅ |
+| B2 | Debugging & testing tensors | Common error messages decoded, `assert_close`, `detect_anomaly`, hooks to find the first NaN | | | planned |
+| B4 | Data & batching for sequences | `Dataset`/`DataLoader`, `collate_fn`, `pad_sequence`, padding masks, packing | | | planned |
+
 ## Main path: the 42 problems by module
 
 The recommended order lives in **[LEARNING_PATH.md](LEARNING_PATH.md)**. It groups the problems into 8 modules (Element-wise → Losses & norms → Layers → Training → Attention → Architecture & efficiency → Decoding → Alignment / RL). Each problem has template, solution, and Colab links, plus the prerequisites it builds on.
