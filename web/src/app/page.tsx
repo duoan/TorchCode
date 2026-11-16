@@ -190,7 +190,8 @@ export default function Home() {
                     { label: '🔵 Prerequisites', diff: 'Prereq' },
                     { label: '🟢 Easy', diff: 'Easy' },
                     { label: '🟡 Medium', diff: 'Medium' },
-                    { label: '🔴 Hard', diff: 'Hard' }
+                    { label: '🔴 Hard', diff: 'Hard' },
+                    { label: '⭐ Bonus', diff: 'Bonus' }
                   ].map((group) => {
                     const groupTasks = tasks.filter(t => t.difficulty === group.diff);
                     if (groupTasks.length === 0) return null;
@@ -286,6 +287,7 @@ export default function Home() {
                     <div className="flex items-center space-x-4 mb-6">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium 
                         ${taskDetails.difficulty === 'Prereq' ? 'bg-[#22364a] text-[#4fb3ff]' :
+                          taskDetails.difficulty === 'Bonus' ? 'bg-[#3a2a4a] text-[#c792ea]' :
                           taskDetails.difficulty === 'Easy' ? 'bg-[#2c4034] text-[#2cbb5d]' : 
                           taskDetails.difficulty === 'Medium' ? 'bg-[#403622] text-[#ffc01e]' : 
                           'bg-[#402a2a] text-[#ef4743]'}`}>

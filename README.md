@@ -144,6 +144,14 @@ New to PyTorch, or rusty? Start here. Each prerequisite is a short lesson follow
 
 Together the ten prerequisites cover every PyTorch skill the 42 problems use; see [CURRICULUM.md](CURRICULUM.md) for the mapping.
 
+### ⭐ Bonus: beyond the problems
+
+Optional notebooks on techniques that come up in interviews and real codebases but that no problem requires. Each one ends with problems to re-solve using it.
+
+| # | Bonus | Exercises | Try it on |
+|:---:|---|---|---|
+| B1 | <a href="templates/00_b01_custom_autograd.ipynb" target="_blank">Custom Autograd Functions</a> <a href="https://colab.research.google.com/github/lalo/TorchCode/blob/master/templates/00_b01_custom_autograd.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `ReLUFn`, `SigmoidFn`, `LinearFn`, `SoftmaxFn`, `FakeQuantFn` | #01, #02, #03, #16, #19, #36 |
+
 ### 🧱 Fundamentals — "Implement X from scratch"
 
 The bread and butter of ML coding interviews. You'll be asked to write these without `torch.nn`.

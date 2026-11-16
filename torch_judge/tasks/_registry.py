@@ -7,7 +7,7 @@ import pkgutil
 from pathlib import Path
 from typing import Any
 
-DIFFICULTY_ORDER = {"Prereq": -1, "Easy": 0, "Medium": 1, "Hard": 2}
+DIFFICULTY_ORDER = {"Prereq": -1, "Easy": 0, "Medium": 1, "Hard": 2, "Bonus": 3}
 
 TASKS: dict[str, dict[str, Any]] = {}
 

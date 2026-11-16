@@ -19,6 +19,11 @@ PREREQS = [
     ("P10", "Training loop & randomness", None),
 ]
 
+# Optional notebooks beyond the problems: (id, title). Content lives in content/bNN_*.py.
+BONUS = [
+    ("B1", "Custom autograd functions"),
+]
+
 # (title, description, problem numbers in recommended order). Must cover every problem exactly once.
 MODULES = [
     ("1. Element-wise", "Single-tensor ops; get comfortable with autograd-friendly math.", [1, 19, 2]),
