@@ -221,8 +221,10 @@ def render_learning_path(notebooks: list[dict], problems: dict) -> str:
         "Problem numbers are unchanged; this is only an ordering. For the reasoning behind it and how "
         "prerequisite notebooks work, see [CURRICULUM.md](CURRICULUM.md).",
         "",
-        "> 🔵 = prerequisite available · ⚪ = prerequisite planned",
-        "",
+        *([
+            "> 🔵 = prerequisite available · ⚪ = prerequisite planned",
+            "",
+        ] if any(stem is None for _, _, stem, _ in prereqs) else []),
         "## Track 0: Prerequisites",
         "",
         "| # | Prerequisite | Unlocks | Links |",
