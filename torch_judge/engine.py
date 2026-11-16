@@ -35,6 +35,16 @@ def _get_user_namespace() -> dict[str, Any]:
     return {}
 
 
+def _stale_install_note() -> None:
+    """Explain the most common cause of an unknown task: an out-of-date installed judge."""
+    import os
+    import torch_judge
+    from torch_judge._version import __version__
+    print(f"{_DIM}   This torch_judge is version {__version__}, loaded from {os.path.dirname(torch_judge.__file__)}{_RESET}")
+    print(f"{_DIM}   Running the notebooks from a clone of the repo? The kernel may be using an older installed copy.{_RESET}")
+    print(f"{_DIM}   Install the repo's version once with  %pip install -e /path/to/TorchCode  and restart the kernel.{_RESET}\n")
+
+
 def check(task_id: str) -> None:
     """Run all tests for a task against the user's implementation.
 
@@ -46,6 +56,7 @@ def check(task_id: str) -> None:
     if task is None:
         available = ", ".join(f"'{k}'" for k in TASKS)
         print(f"{_RED}Unknown task '{task_id}'. Available: {available}{_RESET}")
+        _stale_install_note()
         return
 
     fn_name = task["function_name"]
@@ -110,6 +121,7 @@ def hint(task_id: str) -> None:
     task = get_task(task_id)
     if task is None:
         print(f"{_RED}Unknown task '{task_id}'.{_RESET}")
+        _stale_install_note()
         return
     print(f"\n{_YELLOW}💡 Hint for {task['title']}:{_RESET}")
     print(textwrap.indent(task["hint"], "   ") + "\n")

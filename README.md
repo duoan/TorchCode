@@ -117,6 +117,15 @@ For a modern, standalone coding experience with an integrated IDE and dual-pane 
    ```
 3. Open **<http://localhost:3000>** in your browser.
 
+### Option 4 — Open the notebooks from a clone (VS Code / local Jupyter)
+
+```bash
+pip install -e .        # install the judge (torch_judge) from this checkout, so it matches the notebooks
+make setup-local        # copy the notebooks into ./notebooks (git-ignored) so you never edit the originals
+```
+
+Then open `notebooks/` in VS Code or Jupyter. Without `pip install -e .`, the kernel may import an older `torch-judge` from PyPI that doesn't know the newest tasks, and `check(...)` reports *Unknown task*. After installing, **restart the kernel**.
+
 ![TorchCode UI Preview](assets/ui_preview.png)
 
 ---

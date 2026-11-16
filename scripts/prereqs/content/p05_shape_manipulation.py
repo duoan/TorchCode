@@ -88,6 +88,30 @@ print("reshape works:", xt.reshape(6))
 print("contiguous().view works:", xt.contiguous().view(6))
 '''),
         ("md", r'''
+### Why `view` can't flatten a transposed tensor
+
+`view` **never copies**: it must describe the new shape using the **same storage**, with one fixed **stride** (step) per dimension. Transposing doesn't move any values; it only changes the order in which they're read:
+
+```text
+storage (never moves):            0 1 2 3 4 5
+x  = (2, 3), strides (3, 1)  reads 0 1 2 | 3 4 5
+xt = (3, 2), strides (1, 3)  reads 0 3 | 1 4 | 2 5
+```
+
+Flattening `xt` has to read `0 3 1 4 2 5`: storage position 0, then 3, back to 1, then 4, 2, 5. One dimension needs **one fixed step** between neighbours, but these steps are +3, −2, +3, −2, +3. No single stride works, so `view` raises an error rather than reorder anything. `reshape` gives up on sharing and **copies** the values into that order.
+
+So it depends on **what you ask**, not just on the tensor: adding size-1 dimensions to `xt`, as in `xt.view(1, 3, 2, 1)` or `xt[None, ..., None]`, keeps both existing dimensions and their strides, so it works without a copy.
+'''),
+        ("code", r'''
+xt = torch.arange(6).view(2, 3).T              # reads 0 3 | 1 4 | 2 5
+print(xt.stride())                             # (1, 3)
+print(xt.view(1, 3, 2, 1).shape)               # works: nothing is flattened
+print(xt[None, ..., None].shape)               # the same, by indexing
+flat = xt.reshape(6)
+print(flat, flat.untyped_storage().data_ptr() == xt.untyped_storage().data_ptr())
+# tensor([0, 3, 1, 4, 2, 5]) False: reshape had to copy
+'''),
+        ("md", r'''
 > **Reading order matters.** `x.view(2, 3)` fills the new shape in **row-major** order (last dim varies fastest). Splitting a dimension `D` into `(H, d)` with `view(..., H, d)` therefore puts the first `d` features into head 0, the next `d` into head 1, and so on.
 
 ## 2. `transpose` vs `permute`
@@ -103,6 +127,11 @@ print(x.transpose(-2, -1).shape)        # (2, 3, 5, 4)  the K^T in attention
 '''),
         ("md", r'''
 ## 3. `squeeze`, `unsqueeze`, `flatten`
+
+All three only change the shape: they return views and never lose or copy values.
+- **`squeeze(dim)`** removes `dim` only if its size is **1**. If the size isn't 1, it **silently does nothing** (no error); an out-of-range `dim` does raise.
+- **`squeeze()`** with no argument removes **every** size-1 dimension, including a batch dimension that happens to be 1 (a single example at inference time). That's a classic shape bug, so prefer `squeeze(dim)`.
+- **`unsqueeze(dim)`** is the inverse: it inserts a size-1 dimension at `dim`.
 '''),
         ("code", r'''
 x = torch.randn(3, 1, 4)
@@ -110,6 +139,11 @@ print(x.squeeze(1).shape)       # (3, 4): remove a size-1 dim
 print(x.unsqueeze(0).shape)     # (1, 3, 1, 4): add one
 print(x.flatten(1).shape)       # (3, 4): merge dims 1..end
 print(torch.randn(2, 3, 4).flatten(-2).shape)  # (2, 12): merge the last two
+
+print(torch.zeros(2, 3).squeeze(0).shape)     # (2, 3): dim 0 has size 2, silently unchanged
+one = torch.randn(1, 5, 1)                    # a batch of ONE sequence: (B=1, S=5, 1)
+print(one.squeeze().shape)                    # (5,): the batch dim is gone too!
+print(one.squeeze(-1).shape)                  # (1, 5): only the dim you meant
 '''),
         ("md", r'''
 ## 4. `cat` vs `stack`

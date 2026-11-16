@@ -150,5 +150,28 @@ assert all(isinstance(o, torch.Tensor) for o in outs), 'All exercises must retur
 assert elapsed < 5.0, f'Too slow: {elapsed:.2f}s. Are you looping over elements?'
 """,
         },
+        {
+            "name": "Inputs are not modified",
+            "code": """
+import torch
+def _changed(fn, *args):
+    before = [a.clone() if isinstance(a, torch.Tensor) else [t.clone() for t in a] if isinstance(a, list) else a for a in args]
+    out = fn(*args)
+    assert out is not None, f"{getattr(fn, '__name__', 'function')} returned None: implement it first"
+    for i, (a, b) in enumerate(zip(args, before)):
+        same = torch.equal(a, b) if isinstance(a, torch.Tensor) else all(torch.equal(x, y) for x, y in zip(a, b)) if isinstance(a, list) else True
+        if not same:
+            return i
+    return None
+def _check(name, fn, *args):
+    i = _changed(fn, *args)
+    assert i is None, f'{name} modified its input #{i + 1}: build and return a new tensor instead of writing into the input'
+
+_check('add_channel_bias', add_channel_bias, torch.randn(2, 3, 4, 4), torch.randn(3))
+_check('scale_rows', scale_rows, torch.randn(4, 5), torch.randn(4))
+_check('outer_angles', outer_angles, torch.arange(5.0), torch.rand(3))
+_check('pairwise_sq_dists', pairwise_sq_dists, torch.randn(4, 3), torch.randn(6, 3))
+""",
+        },
     ],
 }

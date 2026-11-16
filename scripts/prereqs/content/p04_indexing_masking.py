@@ -127,6 +127,8 @@ y = x.clone(); y[mask] = 0.0; print(y)
 Masks are built from comparisons, or with `torch.triu` / `torch.tril`. `diagonal=k` shifts which diagonal is kept.
 
 > ⚠️ If an entire row is `-inf`, softmax returns `NaN` for that row. Make sure every query can see at least one key (P9 covers this).
+
+> ⚠️ **Mask conventions differ between APIs.** With `masked_fill`, `True` means **blocked**. PyTorch's `F.scaled_dot_product_attention` takes a boolean `attn_mask` where `True` means **allowed** (the position takes part in attention). Handing one API's mask to the other attends to exactly the wrong positions, without any error. Convert with `~mask`.
 '''),
         ("code", r'''
 S = 4
@@ -137,6 +139,12 @@ print(torch.equal(future, i[None, :] > i[:, None]))   # same mask, from a compar
 
 scores = torch.zeros(2, S, S)
 print(torch.softmax(scores.masked_fill(future, float("-inf")), dim=-1)[0])
+
+import torch.nn.functional as F
+q = k = v = torch.randn(1, S, 8)
+ours = torch.softmax((q @ k.transpose(-2, -1) / 8 ** 0.5).masked_fill(future, float("-inf")), dim=-1) @ v
+sdpa = F.scaled_dot_product_attention(q, k, v, attn_mask=~future)   # SDPA: True = ALLOWED, so invert
+print(torch.allclose(ours, sdpa, atol=1e-6))                         # True
 '''),
         ("md", r'''
 ## 5. `topk` and `sort`

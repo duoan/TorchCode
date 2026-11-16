@@ -153,5 +153,30 @@ exclusive_cumsum(p, dim=0).sum().backward()
 assert torch.allclose(p.grad, torch.tensor([3., 2., 1., 0.])), f'Gradient should count later positions, got {p.grad}'
 """,
         },
+        {
+            "name": "Inputs are not modified",
+            "code": """
+import torch
+def _changed(fn, *args):
+    before = [a.clone() if isinstance(a, torch.Tensor) else [t.clone() for t in a] if isinstance(a, list) else a for a in args]
+    out = fn(*args)
+    assert out is not None, f"{getattr(fn, '__name__', 'function')} returned None: implement it first"
+    for i, (a, b) in enumerate(zip(args, before)):
+        same = torch.equal(a, b) if isinstance(a, torch.Tensor) else all(torch.equal(x, y) for x, y in zip(a, b)) if isinstance(a, list) else True
+        if not same:
+            return i
+    return None
+def _check(name, fn, *args):
+    i = _changed(fn, *args)
+    assert i is None, f'{name} modified its input #{i + 1}: build and return a new tensor instead of writing into the input'
+
+_check('stable_shift', stable_shift, torch.randn(3, 5))
+_check('normalize_rows', normalize_rows, torch.rand(3, 5) + 0.1)
+_check('channel_stats', channel_stats, torch.randn(2, 3, 4, 4))
+_check('masked_mean', masked_mean, torch.randn(2, 4, 3), torch.tensor([[1, 1, 0, 0], [1, 0, 1, 1]], dtype=torch.bool))
+_check('global_l2_norm', global_l2_norm, [torch.randn(3), torch.randn(2, 2)])
+_check('exclusive_cumsum', exclusive_cumsum, torch.randn(3, 6))
+""",
+        },
     ],
 }
