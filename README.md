@@ -235,6 +235,8 @@ Each problem has **two** notebooks:
 8. Click 🔄 Reset in the toolbar  →  Blank slate — practice again!
 ```
 
+**Prerequisite notebooks** (`00_pXX_*.ipynb`) follow the same loop with a few differences: a short lesson comes first, there are several ✏️ cells (one per exercise), and a single `check("p02_broadcasting")` grades every exercise, with each test named after its exercise. `hint(...)` gives one hint per exercise. They're optional, so skip any skill you already know.
+
 ### In-Notebook API
 
 ```python
@@ -250,6 +252,8 @@ status()                    # Progress dashboard — solved / attempted / todo
 ## 📅 Suggested Study Plan
 
 > **Total: ~12–16 hours spread across 3–4 weeks. Perfect for interview prep on a deadline.**
+
+> New to PyTorch? Do the [prerequisites](#-prerequisites-pytorch-skills-the-problems-assume) first, or follow [LEARNING_PATH.md](LEARNING_PATH.md), which orders all 41 problems by the skills they build on.
 
 | Week | Focus | Problems | Time |
 |:----:|-------|----------|:----:|
@@ -293,6 +297,13 @@ make stop   # Stop the container
 make clean  # Stop + remove volumes + reset all progress
 ```
 
+Contributors editing prerequisite notebooks (see [below](#adding-a-prerequisite-notebook)):
+
+```bash
+make prereqs          # Regenerate prerequisite notebooks + LEARNING_PATH.md
+make prereqs-verify   # Check outputs are up to date, solutions pass, blank stubs fail (needs PyTorch)
+```
+
 ## 🧩 Adding Your Own Problems
 
 TorchCode uses auto-discovery — just drop a new file in `torch_judge/tasks/`:
@@ -309,6 +320,16 @@ TASK = {
 ```
 
 No registration needed. The judge picks it up automatically.
+
+### Adding a prerequisite notebook
+
+Prerequisite notebooks (`templates/00_pXX_*.ipynb`, their solutions, and `LEARNING_PATH.md`) are **generated**. Don't edit them in Jupyter; the next build overwrites your changes. Instead:
+
+1. Write the judge task in `torch_judge/tasks/pXX_<topic>.py` (list every exercise in `function_names`).
+2. Write the notebook content in `scripts/prereqs/content/pXX_<topic>.py`.
+3. Run `make prereqs`, then `make prereqs-verify`.
+
+Full details are in [CURRICULUM.md](CURRICULUM.md#adding-a-prerequisite-notebook).
 
 ---
 

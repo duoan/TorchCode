@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import textwrap
 import time
 import traceback
 from typing import Any
@@ -111,4 +112,4 @@ def hint(task_id: str) -> None:
         print(f"{_RED}Unknown task '{task_id}'.{_RESET}")
         return
     print(f"\n{_YELLOW}💡 Hint for {task['title']}:{_RESET}")
-    print(f"   {task['hint']}\n")
+    print(textwrap.indent(task["hint"], "   ") + "\n")
