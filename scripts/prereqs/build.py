@@ -136,7 +136,7 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
     else:
         header = (nb_def["intro"].strip("\n") + "\n\n"
                   + HOW_TO_USE.strip("\n").format(task_id=task_id, file=nb_def["file"]))
-    cells = [md(header), code(COLAB_CELL), code("import torch")]
+    cells = [md(header), code(COLAB_CELL), code(nb_def.get("imports", "import torch"))]
     for kind, payload in nb_def["lesson"]:
         cells.append(md(payload) if kind == "md" else code(payload))
     cells.append(md(nb_def["exercises_intro"]))
