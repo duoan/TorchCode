@@ -27,7 +27,7 @@ The statement says the problem is "used in Longformer, Mistral, etc." and define
 
 **Fixed (first option):** the statement now says "bidirectional (Longformer-style)" and adds a note that Mistral's window is causal, suggesting a causal variant as an extension. The README's key concepts no longer say "Mistral-style". A `causal` argument is still open as a possible follow-up problem.
 
-**Prerequisite coverage (done for P2, planned for P4):** P2 Broadcasting now teaches both grids. `abs_distance_matrix(n)` (`abs(i - j)`) matches #11 as written, and the signed `relative_position(n)` (`R[i, j] = i - j`) keeps the direction, so every attention mask is one comparison on it:
+**Prerequisite coverage (done in P2 and P4):** P2 Broadcasting now teaches both grids. `abs_distance_matrix(n)` (`abs(i - j)`) matches #11 as written, and the signed `relative_position(n)` (`R[i, j] = i - j`) keeps the direction, so every attention mask is one comparison on it:
 
 | Mask | From `R` |
 |------|----------|
@@ -35,7 +35,7 @@ The statement says the problem is "used in Longformer, Mistral, etc." and define
 | Bidirectional sliding window (#11) | `R.abs() > w` |
 | Causal sliding window (Mistral) | `(R < 0) \| (R > w)` |
 
-P4 Indexing & masking is planned to include `attention_mask(n, kind, w)`, which builds all three from `relative_position` and applies them with `masked_fill`. That is where the Longformer vs Mistral distinction gets taught in full.
+P4 Indexing & masking's `attention_mask(n, kind, w)` builds all three from `R` (`"causal"`, `"sliding"`, `"causal_sliding"`) and `apply_mask` applies them with `masked_fill`. That is where the Longformer vs Mistral distinction is taught in full.
 
 ### ✅ #24 RoPE: two pairing conventions
 The statement says RoPE is "used in LLaMA, GPT-NeoX" and rotates **adjacent pairs** `(x[2k], x[2k+1])`. This interleaved convention matches the original RoFormer paper and Meta's LLaMA reference code. GPT-NeoX and the Hugging Face LLaMA implementation instead pair `x[k]` with `x[k + D/2]` (`rotate_half`). Both encode relative position, but they are **not interchangeable** when loading pretrained weights. Interviewers often ask about this.
