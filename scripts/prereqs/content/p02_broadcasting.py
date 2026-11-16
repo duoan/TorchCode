@@ -28,8 +28,9 @@ When you get broadcasting right, the code is short and fast. When you get it wro
 | 1 | `add_channel_bias(x, b)` | #22 Conv2d |
 | 2 | `scale_rows(x, s)` | #04 LayerNorm, #07 BatchNorm, #28 MoE |
 | 3 | `abs_distance_matrix(n)` | #11 Sliding Window Attention |
-| 4 | `outer_angles(positions, freqs)` | #24 RoPE |
-| 5 | `pairwise_sq_dists(a, b)` | k-NN, clustering, contrastive losses |
+| 4 | `relative_position(n)` | #09 Causal Attention, #11 Sliding Window, #13 GPT-2 Block |
+| 5 | `outer_angles(positions, freqs)` | #24 RoPE |
+| 6 | `pairwise_sq_dists(a, b)` | k-NN, clustering, contrastive losses |
 
 ### Rules
 - **No Python loops** over tensor elements. Every exercise is a one- or two-liner.
@@ -118,7 +119,7 @@ print("fixed:", (pred.squeeze(-1) - target).shape)
 ---
 # ✏️ Exercises
 
-Implement the five functions below. Each one has a debug cell you can use to check shapes before you submit.
+Implement the six functions below. Each one has a debug cell you can use to check shapes before you submit.
 ''',
     "exercises": [
         {
@@ -208,7 +209,53 @@ print(abs_distance_matrix(5))
         },
         {
             "spec": r'''
-### Exercise 4: `outer_angles(positions, freqs)`
+### Exercise 4: `relative_position(n)`
+
+The **signed** version of Exercise 3: `R[i, j] = i - j`, i.e. how far key `j` is *behind* query `i`.
+
+- `n`: int
+- returns: `(n, n)` integer tensor (dtype `torch.long`)
+- `R[i, j] > 0`: key `j` is in the **past** of query `i`
+- `R[i, j] == 0`: the query itself
+- `R[i, j] < 0`: key `j` is in the **future**
+
+**Why the sign matters:** `abs_distance_matrix` can't tell past from future. With `R`, every attention mask in TorchCode is a single comparison:
+
+- **Causal** (#09, #13): mask where `R < 0`
+- **Two-sided sliding window**, Longformer-style (#11 as written): mask where `R.abs() > w`
+- **Causal sliding window**, Mistral-style: mask where `(R < 0) | (R > w)`
+
+*Applying masks with `masked_fill` is covered in P4 Indexing & masking. Here you only build the grid.*
+''',
+            "stub": r'''
+def relative_position(n: int) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def relative_position(n: int) -> torch.Tensor:
+    idx = torch.arange(n)
+    return idx[:, None] - idx[None, :]
+''',
+            "debug": r'''
+R = relative_position(5)
+print(R)
+# Expected:
+# [[ 0, -1, -2, -3, -4],
+#  [ 1,  0, -1, -2, -3],
+#  [ 2,  1,  0, -1, -2],
+#  [ 3,  2,  1,  0, -1],
+#  [ 4,  3,  2,  1,  0]]
+
+# Every mask is one comparison on R (1 = masked out):
+w = 1
+print("causal:\n", (R < 0).int())
+print("two-sided window (Longformer):\n", (R.abs() > w).int())
+print("causal window (Mistral):\n", ((R < 0) | (R > w)).int())
+''',
+        },
+        {
+            "spec": r'''
+### Exercise 5: `outer_angles(positions, freqs)`
 
 Build the table of rotation angles used by RoPE: `angles[p, k] = positions[p] * freqs[k]`.
 
@@ -236,7 +283,7 @@ print(ang)
         },
         {
             "spec": r'''
-### Exercise 5: `pairwise_sq_dists(a, b)`
+### Exercise 6: `pairwise_sq_dists(a, b)`
 
 Compute squared Euclidean distances between **every** row of `a` and **every** row of `b`.
 
@@ -270,8 +317,9 @@ print(pairwise_sq_dists(a, b))
         (4, "`gamma * x_norm + beta` broadcasts per-feature params over the batch; `keepdim=True` stats broadcast back"),
         (8, "Dividing by a `(..., 1)` RMS and scaling by a `(D,)` weight"),
         (7, "Per-feature batch statistics `(D,)` broadcast across the batch dim"),
-        (9, "The causal mask is an outer comparison of positions (lesson §3)"),
-        (11, "`abs_distance_matrix`: mask every key more than `window_size` positions away, i.e. `abs(i - j) > window_size`"),
+        (9, "`relative_position`: the causal mask is `R < 0` (keys in the future)"),
+        (11, "`abs_distance_matrix`: mask keys more than `window_size` away (`abs(i - j) > window_size`); `relative_position` gives the causal, Mistral-style variant"),
+        (13, "`relative_position`: the same causal mask, inside a full transformer block"),
         (22, "`add_channel_bias`: the final `out + bias.view(1, -1, 1, 1)`"),
         (24, "`outer_angles`: the `pos * freqs` table of rotation angles"),
         (28, "`scale_rows`: each token's expert output times its routing weight"),

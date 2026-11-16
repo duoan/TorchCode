@@ -21,13 +21,15 @@ The statement says the problem is "used in Longformer, Mistral, etc." and define
 - Reword the statement to "bidirectional sliding window (Longformer-style)" and drop or qualify the Mistral reference.
 - Add a `causal: bool` argument (or a follow-up problem) for the Mistral variant. It combines naturally with #09 Causal Attention and #14 KV Cache.
 
-**Related prerequisite change:** P2 currently teaches `abs_distance_matrix(n)` (`D[i, j] = abs(i - j)`), which matches #11 as written. A signed `relative_position(n)` (`R[i, j] = i - j`) would teach strictly more, because every attention mask can be built from it:
+**Prerequisite coverage (done for P2, planned for P4):** P2 Broadcasting now teaches both grids. `abs_distance_matrix(n)` (`abs(i - j)`) matches #11 as written, and the signed `relative_position(n)` (`R[i, j] = i - j`) keeps the direction, so every attention mask is one comparison on it:
 
 | Mask | From `R` |
 |------|----------|
 | Causal (#09) | `R < 0` |
 | Bidirectional sliding window (#11) | `R.abs() > w` |
 | Causal sliding window (Mistral) | `(R < 0) \| (R > w)` |
+
+P4 Indexing & masking is planned to include `attention_mask(n, kind, w)`, which builds all three from `relative_position` and applies them with `masked_fill`. That is where the Longformer vs Mistral distinction gets taught in full.
 
 ### #24 RoPE: two pairing conventions
 The statement says RoPE is "used in LLaMA, GPT-NeoX" and rotates **adjacent pairs** `(x[2k], x[2k+1])`. This interleaved convention matches the original RoFormer paper and Meta's LLaMA reference code. GPT-NeoX and the Hugging Face LLaMA implementation instead pair `x[k]` with `x[k + D/2]` (`rotate_half`). Both encode relative position, but they are **not interchangeable** when loading pretrained weights. Interviewers often ask about this.

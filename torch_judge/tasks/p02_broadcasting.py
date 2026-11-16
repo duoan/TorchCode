@@ -9,6 +9,7 @@ TASK = {
         "add_channel_bias",
         "scale_rows",
         "abs_distance_matrix",
+        "relative_position",
         "outer_angles",
         "pairwise_sq_dists",
     ],
@@ -17,6 +18,7 @@ TASK = {
         "- `add_channel_bias`: reshape `b` to `(1, C, 1, 1)` with `b.view(1, -1, 1, 1)` so it lines up with the channel dim.\n"
         "- `scale_rows`: `s[:, None]` turns `(N,)` into `(N, 1)`, which broadcasts across columns. Plain `x * s` scales columns instead.\n"
         "- `abs_distance_matrix`: `idx = torch.arange(n)`, then `idx[:, None] - idx[None, :]` gives an `(n, n)` grid; take `.abs()`.\n"
+        "- `relative_position`: same grid as `abs_distance_matrix` without `.abs()`. Check the direction: `R[i, j]` is `i - j`, so rows index queries.\n"
         "- `outer_angles`: column times row: `positions[:, None] * freqs[None, :]`.\n"
         "- `pairwise_sq_dists`: `a[:, None, :] - b[None, :, :]` is `(N, M, D)`; square it and sum over the last dim."
     ),
@@ -82,6 +84,32 @@ assert abs_distance_matrix(1).shape == (1, 1), 'n=1 should give a (1, 1) matrix'
 """,
         },
         {
+            "name": "relative_position: values and direction",
+            "code": """
+import torch
+R = relative_position(6)
+assert R.shape == (6, 6), f'Shape mismatch: {R.shape}'
+assert not R.is_floating_point(), f'Expected an integer tensor, got {R.dtype}'
+assert R[3, 1].item() == 2, f'R[3, 1] should be 3 - 1 = 2 (key in the past), got {R[3, 1].item()}. Is it j - i?'
+for i in range(6):
+    for j in range(6):
+        assert R[i, j].item() == i - j, f'R[{i},{j}] = {R[i, j].item()}, expected {i - j}'
+""",
+        },
+        {
+            "name": "relative_position: builds the causal and sliding masks",
+            "code": """
+import torch
+n, w = 7, 2
+R = relative_position(n)
+causal = torch.triu(torch.ones(n, n, dtype=torch.bool), diagonal=1)
+assert torch.equal(R < 0, causal), 'R < 0 must be exactly the causal (future) mask'
+i = torch.arange(n)
+assert torch.equal(R.abs() > w, (i[:, None] - i[None, :]).abs() > w), 'R.abs() > w must be the two-sided window mask'
+assert relative_position(1).shape == (1, 1), 'n=1 should give a (1, 1) matrix'
+""",
+        },
+        {
             "name": "outer_angles",
             "code": """
 import torch
@@ -115,7 +143,8 @@ x = torch.randn(32, 64, 32, 32); bias = torch.randn(64)
 a = torch.randn(512, 32); b = torch.randn(512, 32)
 t0 = time.perf_counter()
 for _ in range(5):
-    outs = (add_channel_bias(x, bias), abs_distance_matrix(512), pairwise_sq_dists(a, b))
+    outs = (add_channel_bias(x, bias), abs_distance_matrix(512), relative_position(512),
+            pairwise_sq_dists(a, b))
 elapsed = time.perf_counter() - t0
 assert all(isinstance(o, torch.Tensor) for o in outs), 'All exercises must return tensors before timing counts'
 assert elapsed < 5.0, f'Too slow: {elapsed:.2f}s. Are you looping over elements?'

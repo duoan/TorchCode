@@ -10,7 +10,7 @@ PREREQS = [
     ("P1", "Tensor basics", [1, 19, 20, 36]),
     ("P2", "Broadcasting", None),
     ("P3", "Reductions along dims", [2, 4, 7, 8, 16, 21, 36, 38]),
-    ("P4", "Indexing & masking", [9, 11, 14, 16, 18, 24, 28, 32, 38]),
+    ("P4", "Indexing & masking", [9, 11, 13, 14, 16, 18, 24, 28, 32, 38]),
     ("P5", "Shape manipulation", None),
     ("P6", "Matmul & einsum", [3, 5, 6, 12, 22, 26, 40]),
     ("P7", "Autograd essentials", [7, 20, 21, 29, 31, 37, 38, 39, 40, 41]),
