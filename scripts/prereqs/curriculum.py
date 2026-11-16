@@ -15,8 +15,8 @@ PREREQS = [
     ("P6", "Matmul & einsum", None),
     ("P7", "Autograd essentials", None),
     ("P8", "nn.Module anatomy", None),
-    ("P9", "Numerical stability & log-space", [2, 16, 25, 32, 34, 37, 38, 39, 41]),
-    ("P10", "Training loop & randomness", [17, 29, 30, 31, 32, 33, 34, 40]),
+    ("P9", "Numerical stability & log-space", None),
+    ("P10", "Training loop & randomness", None),
 ]
 
 # (title, description, problem numbers in recommended order). Must cover every problem exactly once.
