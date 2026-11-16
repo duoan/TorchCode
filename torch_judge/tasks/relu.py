@@ -49,8 +49,9 @@ import torch, time
 big = torch.randn(1024, 1024)
 t0 = time.perf_counter()
 for _ in range(100):
-    {fn}(big)
+    out = {fn}(big)
 elapsed = time.perf_counter() - t0
+assert isinstance(out, torch.Tensor) and out.shape == big.shape, 'Implement relu first: it must return a tensor of the same shape'
 assert elapsed < 5.0, f'Too slow: {elapsed:.2f}s for 100 iterations'
 """,
         },

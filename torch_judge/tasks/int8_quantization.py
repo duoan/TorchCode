@@ -24,7 +24,7 @@ TASK = {
         },
         {
             "name": "Weight is buffer not parameter",
-            "code": "\nimport torch\nq = {fn}(torch.randn(4, 4))\nparam_names = [n for n, _ in q.named_parameters()]\nassert 'weight_int8' not in param_names, 'weight_int8 should be a buffer'\nassert 'scale' not in param_names, 'scale should be a buffer'\n"
+            "code": "\nimport torch\nq = {fn}(torch.randn(4, 4))\nparam_names = [n for n, _ in q.named_parameters()]\nbuffer_names = [n for n, _ in q.named_buffers()]\nassert 'weight_int8' in buffer_names and 'scale' in buffer_names, f'Register weight_int8 and scale with register_buffer; found buffers {buffer_names}'\nassert 'weight_int8' not in param_names, 'weight_int8 should be a buffer'\nassert 'scale' not in param_names, 'scale should be a buffer'\n"
         }
     ]
 }
