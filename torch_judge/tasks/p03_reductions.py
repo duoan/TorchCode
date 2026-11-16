@@ -1,0 +1,128 @@
+"""Prerequisite 3: Reductions along dims (multi-exercise task)."""
+
+TASK = {
+    "title": "Prereq 3: Reductions Along Dims",
+    "difficulty": "Prereq",
+    "order": 3,
+    "function_name": "stable_shift",
+    "function_names": [
+        "stable_shift",
+        "normalize_rows",
+        "channel_stats",
+        "masked_mean",
+        "global_l2_norm",
+    ],
+    # One bullet per exercise (rendered as markdown in the web UI)
+    "hint": (
+        "- `stable_shift`: `x.max(dim=-1, keepdim=True)` returns `(values, indices)`; subtract `.values`.\n"
+        "- `normalize_rows`: divide by `x.sum(dim=-1, keepdim=True)`. Without `keepdim` a square input divides by the wrong axis.\n"
+        "- `channel_stats`: reduce over `dim=(0, 2, 3)`, and pass `unbiased=False` to `var`.\n"
+        "- `masked_mean`: turn the mask into `x.dtype` with shape `(B, S, 1)`, sum `x * m` over dim 1, and divide by `m.sum(dim=1).clamp_min(1)`.\n"
+        "- `global_l2_norm`: reduce each tensor to `t.pow(2).sum()`, stack the scalars, sum, then `sqrt`."
+    ),
+    "tests": [
+        {
+            "name": "stable_shift: row max becomes 0",
+            "code": """
+import torch
+torch.manual_seed(0)
+x = torch.randn(4, 4) * 10
+out = stable_shift(x)
+assert isinstance(out, torch.Tensor) and out.shape == x.shape, f'Expected a tensor of shape {tuple(x.shape)}'
+assert torch.allclose(out.amax(dim=-1), torch.zeros(4)), 'Each ROW max should be 0. Reducing over the wrong dim?'
+assert torch.allclose(out, x - x.amax(dim=-1, keepdim=True)), 'Wrong values'
+""",
+        },
+        {
+            "name": "stable_shift: 3-D input, huge values",
+            "code": """
+import torch
+x = torch.tensor([[[1000., 1001., 999.]], [[-5., -7., -6.]]])
+out = stable_shift(x)
+assert out.shape == x.shape, f'Shape mismatch: {out.shape}'
+assert torch.allclose(out, torch.tensor([[[-1., 0., -2.]], [[0., -2., -1.]]])), f'Got {out}'
+assert torch.isfinite(torch.exp(out)).all(), 'exp of the shifted values should not overflow'
+""",
+        },
+        {
+            "name": "normalize_rows: square input",
+            "code": """
+import torch
+x = torch.tensor([[1., 1., 2.], [3., 1., 0.], [1., 1., 1.]])
+out = normalize_rows(x)
+assert isinstance(out, torch.Tensor) and out.shape == x.shape, f'Expected a tensor of shape {tuple(x.shape)}'
+assert torch.allclose(out.sum(dim=-1), torch.ones(3)), f'Rows must sum to 1, got {out.sum(dim=-1)}'
+assert torch.allclose(out[0], torch.tensor([0.25, 0.25, 0.5])), f'Row 0 wrong: {out[0]}'
+""",
+        },
+        {
+            "name": "normalize_rows: batched input and gradient",
+            "code": """
+import torch
+x = (torch.rand(2, 3, 5) + 0.1).requires_grad_()
+out = normalize_rows(x)
+assert out.shape == (2, 3, 5), f'Shape mismatch: {out.shape}'
+assert torch.allclose(out.sum(dim=-1), torch.ones(2, 3), atol=1e-6), 'Every row (last dim) must sum to 1'
+out[..., 0].sum().backward()
+assert x.grad is not None and torch.isfinite(x.grad).all(), 'Gradient should flow'
+""",
+        },
+        {
+            "name": "channel_stats: per-channel, biased",
+            "code": """
+import torch
+torch.manual_seed(0)
+x = torch.randn(4, 3, 2, 2)
+res = channel_stats(x)
+assert isinstance(res, tuple) and len(res) == 2, 'Return a tuple (mean, var)'
+mean, var = res
+assert mean.shape == (3,) and var.shape == (3,), f'Expected shapes (C,) = (3,), got {mean.shape} and {var.shape}'
+assert torch.allclose(mean, x.mean(dim=(0, 2, 3)), atol=1e-6), 'Wrong mean: reduce over batch AND spatial dims'
+if torch.allclose(var, x.var(dim=(0, 2, 3), unbiased=True), atol=1e-6):
+    raise AssertionError('That is the unbiased variance (divides by N-1). Use unbiased=False')
+assert torch.allclose(var, x.var(dim=(0, 2, 3), unbiased=False), atol=1e-6), 'Wrong variance'
+""",
+        },
+        {
+            "name": "masked_mean: bool and float masks",
+            "code": """
+import torch
+torch.manual_seed(0)
+x = torch.randn(3, 5, 4)
+mask_b = torch.tensor([[1, 1, 0, 0, 0], [1, 1, 1, 1, 1], [0, 1, 0, 1, 0]], dtype=torch.bool)
+expected = torch.stack([x[b][mask_b[b]].mean(dim=0) for b in range(3)])
+for mask in (mask_b, mask_b.float()):
+    out = masked_mean(x, mask)
+    assert isinstance(out, torch.Tensor) and out.shape == (3, 4), f'Expected shape (B, D) = (3, 4), got {getattr(out, "shape", out)}'
+    assert torch.allclose(out, expected, atol=1e-6), f'Wrong values for a {mask.dtype} mask'
+""",
+        },
+        {
+            "name": "masked_mean: fully masked sequence gives zeros",
+            "code": """
+import torch
+x = torch.randn(2, 3, 4, requires_grad=True)
+mask = torch.tensor([[True, False, True], [False, False, False]])
+out = masked_mean(x, mask)
+assert torch.isfinite(out).all(), f'No NaN/inf allowed, got {out}'
+assert torch.equal(out[1], torch.zeros(4)), f'A sequence with no valid tokens should give zeros, got {out[1]}'
+out.sum().backward()
+assert torch.isfinite(x.grad).all() and torch.equal(x.grad[0, 1], torch.zeros(4)), 'Masked tokens must get zero gradient'
+""",
+        },
+        {
+            "name": "global_l2_norm",
+            "code": """
+import torch
+torch.manual_seed(0)
+ts = [torch.randn(3, 4), torch.randn(7), torch.randn(2, 2, 2)]
+out = global_l2_norm(ts)
+assert isinstance(out, torch.Tensor), f'Return a tensor, got {type(out)}'
+assert out.ndim == 0, f'Return a 0-d tensor, got shape {tuple(out.shape)}'
+expected = torch.cat([t.flatten() for t in ts]).norm()
+assert torch.allclose(out, expected, atol=1e-5), f'Expected {expected.item():.5f}, got {out.item():.5f}'
+assert torch.allclose(global_l2_norm([torch.tensor([3., 0.]), torch.tensor([[0., 4.]])]), torch.tensor(5.)), '3-4-5 check failed'
+""",
+        },
+    ],
+}
