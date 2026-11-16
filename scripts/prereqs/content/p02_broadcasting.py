@@ -87,15 +87,23 @@ print(out[0, :, 0] - x[0, :, 0])   # tensor([10., 20., 30.])
 ## 3. Outer operations
 
 Combining a column `(N, 1)` with a row `(1, M)` gives an `(N, M)` grid where entry `[i, j]` uses `a[i]` and `b[j]`.
+The **column** supplies the row index `i`; the **row** supplies the column index `j`.
 This is how you build attention masks, position-frequency tables, and pairwise distances **without loops**.
 '''),
         ("code", r'''
-i = torch.arange(4)
-grid = i[:, None] * 10 + i[None, :]   # (4, 1) op (1, 4) -> (4, 4)
+i = torch.arange(3)                    # 3 rows
+j = torch.arange(4)                    # 4 columns
+grid = i[:, None] * 10 + j[None, :]    # (3, 1) op (1, 4) -> (3, 4)
 print(grid)
+# [[ 0,  1,  2,  3],
+#  [10, 11, 12, 13],
+#  [20, 21, 22, 23]]   tens digit = row i, ones digit = column j
 
-# A causal mask is just an outer comparison:
-causal = i[None, :] > i[:, None]      # True where key j is in the future of query i
+# A causal mask is the same outer comparison. It's square because queries and keys
+# run over the same S positions, but the roles still differ: rows = queries, columns = keys.
+S = 4
+q, k = torch.arange(S), torch.arange(S)
+causal = k[None, :] > q[:, None]       # True where key k is in the future of query q
 print(causal)
 '''),
         ("md", r'''
