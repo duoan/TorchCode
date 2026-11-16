@@ -42,7 +42,8 @@ def main() -> int:
         task_id = nb["task_id"]
         print(f"{task_id}")
 
-        solution = PRELUDE + "\n\n".join(ex["solution"].strip("\n") for ex in nb["exercises"])
+        prelude = PRELUDE + nb.get("imports", "") + "\n\n"   # the notebook's own setup cell
+        solution = prelude + "\n\n".join(ex["solution"].strip("\n") for ex in nb["exercises"])
         r = run(task_id, solution)
         good = r["total"] > 0 and r["passed"] == r["total"]
         print(f"  {'✅' if good else '❌'} solutions pass {r['passed']}/{r['total']}")
@@ -51,7 +52,7 @@ def main() -> int:
                 print(f"    failed: {t['name']}: {t['error_msg']}")
         ok &= good
 
-        stubs = PRELUDE + "\n\n".join(ex["stub"].strip("\n") for ex in nb["exercises"])
+        stubs = prelude + "\n\n".join(ex["stub"].strip("\n") for ex in nb["exercises"])
         r = execute_code(task_id, stubs)
         good = r["passed"] == 0
         print(f"  {'✅' if good else '❌'} blank stubs pass {r['passed']}/{r['total']}")
