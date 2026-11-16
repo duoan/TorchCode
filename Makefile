@@ -77,10 +77,12 @@ prereqs:
 	$(PYTHON) scripts/prereqs/build.py
 	$(PYTHON) scripts/prereqs/sync_docs.py
 	$(PYTHON) scripts/sync_notation.py
+	$(PYTHON) scripts/sync_solution_links.py
 
 prereqs-check:
 	$(PYTHON) scripts/prereqs/build.py --check
 	$(PYTHON) scripts/sync_notation.py --check
+	$(PYTHON) scripts/sync_solution_links.py --check
 
 prereqs-verify: prereqs-check
 	$(PYTHON) scripts/prereqs/verify.py

@@ -39,6 +39,7 @@ import curriculum  # noqa: E402
 
 from repo_config import COLAB_BLOB as COLAB_URL, GITHUB_BLOB as REPO_URL  # noqa: E402  (set in repo.json)
 from notation import render_box, used_entries  # noqa: E402
+from sync_solution_links import link_cell  # noqa: E402
 DIFF_ICON = {"Easy": "🟢", "Medium": "🟡", "Hard": "🔴"}
 # Template file stems whose judge task id differs (keep in sync with api/parser.py)
 TASK_ID_ALIASES = {"multihead_attention": "mha"}
@@ -157,6 +158,8 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
                       task_id=task_id, file=nb_def["file"],
                       last_item=HOW_TO_LAST_BONUS if is_bonus(nb_def) else HOW_TO_LAST_PREREQ))
     cells = [md(header), code(COLAB_CELL), code(nb_def.get("imports", "import torch"))]
+    if not solution:   # "📖 Reference solution" links, right after the first cell
+        cells.insert(1, md(link_cell(nb_def["file"])["source"][0]))
     for kind, payload in nb_def["lesson"]:
         cells.append(md(payload) if kind == "md" else code(payload))
     cells.append(md(nb_def["exercises_intro"]))

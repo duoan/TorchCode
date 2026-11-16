@@ -371,6 +371,8 @@ TASK = {
 
 No registration needed. The judge picks it up automatically.
 
+Add the notebooks as `templates/NN_name.ipynb` and `solutions/NN_name_solution.ipynb`, then run `make prereqs`: it adds the "📖 Reference solution" link to the template (and the 📐 Notation box, if the problem is listed in `scripts/notation.py`).
+
 ### Adding a prerequisite notebook
 
 Prerequisite notebooks (`templates/00_pXX_*.ipynb`, their solutions, and `LEARNING_PATH.md`) are **generated**. Don't edit them in Jupyter; the next build overwrites your changes. Instead:
