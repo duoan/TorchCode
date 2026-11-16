@@ -75,6 +75,7 @@ PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else e
 
 prereqs:
 	$(PYTHON) scripts/prereqs/build.py
+	$(PYTHON) scripts/prereqs/sync_bonus_docs.py
 
 prereqs-check:
 	$(PYTHON) scripts/prereqs/build.py --check

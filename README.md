@@ -148,9 +148,12 @@ Together the ten prerequisites cover every PyTorch skill the 42 problems use; se
 
 Optional notebooks on techniques that come up in interviews and real codebases but that no problem requires. Each one ends with problems to re-solve using it.
 
+<!-- bonus-table:start -->
 | # | Bonus | Exercises | Try it on |
 |:---:|---|---|---|
 | B1 | <a href="templates/00_b01_custom_autograd.ipynb" target="_blank">Custom Autograd Functions</a> <a href="https://colab.research.google.com/github/lalo/TorchCode/blob/master/templates/00_b01_custom_autograd.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `ReLUFn`, `SigmoidFn`, `LinearFn`, `SoftmaxFn`, `FakeQuantFn` | #01, #02, #03, #16, #19, #36 |
+| B4 | <a href="templates/00_b04_sequence_batching.ipynb" target="_blank">Sequence Batching</a> <a href="https://colab.research.google.com/github/lalo/TorchCode/blob/master/templates/00_b04_sequence_batching.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab" height="20"></a> | `pad_batch`, `padding_mask`, `attention_mask_padded`, `next_token_batch`, `masked_token_loss` | #09, #13, #14, #16, #41 |
+<!-- bonus-table:end -->
 
 ### 🧱 Fundamentals — "Implement X from scratch"
 
