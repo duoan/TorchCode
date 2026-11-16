@@ -15,7 +15,7 @@ CONTAINER ?= $(shell \
 		echo "docker"; \
 	fi)
 
-.PHONY: run run-build stop clean setup-local badges prereqs prereqs-check prereqs-verify
+.PHONY: run run-build stop clean setup-local badges prereqs prereqs-check prereqs-verify repo-links repo-links-check
 
 run:
 	@echo "Using compose backend: $(COMPOSE)"
@@ -81,3 +81,11 @@ prereqs-check:
 
 prereqs-verify: prereqs-check
 	$(PYTHON) scripts/prereqs/verify.py
+
+# Point every Colab badge / GitHub file link at the repo in repo.json, then rebuild generated files
+repo-links:
+	$(PYTHON) scripts/sync_repo_links.py
+	$(PYTHON) scripts/prereqs/build.py
+
+repo-links-check:
+	$(PYTHON) scripts/sync_repo_links.py --check

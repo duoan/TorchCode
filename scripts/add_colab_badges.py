@@ -4,8 +4,10 @@
 import json
 from pathlib import Path
 
-REPO = "duoan/TorchCode"
-BRANCH = "master"
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from repo_config import BRANCH, REPO  # noqa: E402  (set in repo.json)
+
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates"
 SOLUTIONS_DIR = ROOT / "solutions"

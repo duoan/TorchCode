@@ -37,8 +37,7 @@ from torch_judge.tasks import TASKS  # noqa: E402
 sys.path.insert(0, str(HERE))
 import curriculum  # noqa: E402
 
-REPO_URL = "https://github.com/duoan/TorchCode/blob/master"
-COLAB_URL = "https://colab.research.google.com/github/duoan/TorchCode/blob/master"
+from repo_config import COLAB_BLOB as COLAB_URL, GITHUB_BLOB as REPO_URL  # noqa: E402  (set in repo.json)
 DIFF_ICON = {"Easy": "🟢", "Medium": "🟡", "Hard": "🔴"}
 # Template file stems whose judge task id differs (keep in sync with api/parser.py)
 TASK_ID_ALIASES = {"multihead_attention": "mha"}
