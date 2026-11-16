@@ -70,4 +70,5 @@ Both reference solutions are plain Python classes (`self.weight` tensors with `r
 
 - **PyPI release:** Colab installs `torch-judge` from PyPI, so `check("p02_broadcasting")` and the other prerequisite tasks only work in Colab after the next release.
 - ~~**Notebook generator:** commit the scratch generator.~~ Done: `scripts/prereqs/` with `make prereqs` / `make prereqs-verify`.
+- **Web UI shows no lessons:** the standalone web UI (`api/parser.py`) shows only a notebook's first Markdown cell and its ✏️ stubs. For prerequisites, the lesson and demo cells, the debug cells, and the "What this unlocks" section are missing, and step 1 of the "How to use this notebook" box doesn't apply. Fix: either render the lesson cells as part of the description, or link to the notebook from the web UI.
 - **Web UI:** the new "Prereq" difficulty group and badge color in `web/src/app/page.tsx` have not been checked in a browser yet.

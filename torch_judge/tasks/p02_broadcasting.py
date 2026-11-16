@@ -12,10 +12,13 @@ TASK = {
         "outer_angles",
         "pairwise_sq_dists",
     ],
+    # One bullet per exercise (rendered as markdown in the web UI)
     "hint": (
-        "Line up the dims you mean by inserting size-1 axes: b.view(1, -1, 1, 1), s[:, None], "
-        "idx[:, None] - idx[None, :]. For pairwise distances build an (N, M, D) difference with "
-        "a[:, None, :] - b[None, :, :] and reduce over the last dim."
+        "- `add_channel_bias`: reshape `b` to `(1, C, 1, 1)` with `b.view(1, -1, 1, 1)` so it lines up with the channel dim.\n"
+        "- `scale_rows`: `s[:, None]` turns `(N,)` into `(N, 1)`, which broadcasts across columns. Plain `x * s` scales columns instead.\n"
+        "- `abs_distance_matrix`: `idx = torch.arange(n)`, then `idx[:, None] - idx[None, :]` gives an `(n, n)` grid; take `.abs()`.\n"
+        "- `outer_angles`: column times row: `positions[:, None] * freqs[None, :]`.\n"
+        "- `pairwise_sq_dists`: `a[:, None, :] - b[None, :, :]` is `(N, M, D)`; square it and sum over the last dim."
     ),
     "tests": [
         {

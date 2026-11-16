@@ -12,11 +12,13 @@ TASK = {
         "interleave",
         "patchify",
     ],
+    # One bullet per exercise (rendered as markdown in the web UI)
     "hint": (
-        "split_heads: view(B, S, H, d) then transpose(1, 2). merge_heads: transpose back, then "
-        ".contiguous().view(...) (or reshape). repeat_kv: repeat_interleave on the head dim. "
-        "interleave: stack on a new last dim, then flatten(-2). patchify: reshape to "
-        "(B, C, H/p, p, W/p, p), permute to (B, H/p, W/p, C, p, p), reshape."
+        "- `split_heads`: `x.view(B, S, H, D // H)` splits the features, then `.transpose(1, 2)` moves heads before the sequence.\n"
+        "- `merge_heads`: transpose back to `(B, S, H, d)`, then `.contiguous().view(B, S, H * d)` (or `.reshape`). `view` alone fails after a transpose.\n"
+        "- `repeat_kv`: `x.repeat_interleave(n_rep, dim=1)` repeats each head in place; `repeat` would tile the whole set instead.\n"
+        "- `interleave`: `torch.stack([a, b], dim=-1)` gives `(..., N, 2)`; `.flatten(-2)` turns that into `(..., 2N)` in alternating order.\n"
+        "- `patchify`: `reshape(B, C, H/p, p, W/p, p)`, `permute(0, 2, 4, 1, 3, 5)` to `(B, H/p, W/p, C, p, p)`, then reshape to `(B, N, C*p*p)`."
     ),
     "tests": [
         {

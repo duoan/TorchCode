@@ -43,6 +43,15 @@ DIFF_ICON = {"Easy": "🟢", "Medium": "🟡", "Hard": "🔴"}
 # Template file stems whose judge task id differs (keep in sync with api/parser.py)
 TASK_ID_ALIASES = {"multihead_attention": "mha"}
 
+HOW_TO_USE = """
+### How to use this notebook
+1. **Run the lesson cells** (sections 1, 2, …) from top to bottom. They are demos: change them and re-run.
+2. **Do the exercises in order.** Each one has its own `✏️ YOUR IMPLEMENTATION HERE` cell, followed by a debug cell for checking shapes before you submit.
+3. **Submit at any time** with the `check("{task_id}")` cell at the bottom. It grades every exercise at once, and each test is named after its exercise, so a partial score shows which ones are left.
+4. **Stuck?** `hint("{task_id}")` gives one hint per exercise; `{file}_solution.ipynb` has the reference code.
+5. **Already comfortable with this skill?** Prerequisites are optional. Skip straight to the problems listed in **🔓 What this unlocks** at the bottom.
+"""
+
 COLAB_CELL = """# Install torch-judge in Colab (no-op in JupyterLab/Docker)
 try:
     import google.colab
@@ -79,7 +88,7 @@ def load_notebooks() -> list[dict]:
         spec = importlib.util.spec_from_file_location(f"prereq_{path.stem}", path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        nb = mod.NOTEBOOK
+        nb = dict(mod.NOTEBOOK, source=f"scripts/prereqs/content/{path.name}")
         if nb["task_id"] not in TASKS:
             raise SystemExit(f"{path.name}: no judge task torch_judge/tasks/{nb['task_id']}.py")
         notebooks.append(nb)
@@ -125,7 +134,8 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
         header = (f"# 📖 Solution: {nb_def['title']}\n\nReference solutions for every exercise in "
                   f"`{nb_def['file']}.ipynb`. Try the template first!")
     else:
-        header = nb_def["intro"].strip("\n")
+        header = (nb_def["intro"].strip("\n") + "\n\n"
+                  + HOW_TO_USE.strip("\n").format(task_id=task_id, file=nb_def["file"]))
     cells = [md(header), code(COLAB_CELL), code("import torch")]
     for kind, payload in nb_def["lesson"]:
         cells.append(md(payload) if kind == "md" else code(payload))
@@ -137,7 +147,11 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
         else:
             cells.append(code("# ✏️ YOUR IMPLEMENTATION HERE\n\n" + ex["stub"].strip("\n")))
         cells.append(code(ex["debug"]))
-    cells.append(md("## ✅ Submit\n\nRun the judge on **all** exercises in this notebook. "
+    # Hidden from learners (HTML comment), visible to anyone editing the notebook JSON.
+    # Not in the first cell: the web UI shows that cell as the problem description.
+    generated_note = (f"<!-- Generated from {nb_def['source']} by `make prereqs`. "
+                      f"Edit that file instead of this notebook; manual edits are overwritten. -->\n")
+    cells.append(md(generated_note + "## ✅ Submit\n\nRun the judge on **all** exercises in this notebook. "
                     "Each test is labelled with the exercise it checks."))
     cells.append(code(f'from torch_judge import check, hint\ncheck("{task_id}")'))
     if not solution:
@@ -153,6 +167,10 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
             "language_info": {"name": "python", "version": "3.11.0"},
+            "torchcode": {
+                "generated_by": "scripts/prereqs/build.py (make prereqs)",
+                "source": nb_def["source"],
+            },
         },
         "nbformat": 4,
         "nbformat_minor": 5,
