@@ -268,6 +268,7 @@ print(out, x.grad)      # expect tensor([ 0.,  2., -3.]) tensor([1., 1., 1.])
     "unlocks": [
         (7, "Updating running stats from `batch_mean.detach()` so they never enter the graph"),
         (20, "Filling a weight in place under `torch.no_grad()`"),
+        (42, "Updating per-channel running stats in place without entering the graph"),
         (21, "Reading and rescaling `p.grad` for every parameter"),
         (29, "`sgd_step_`: the in-place update loop Adam builds on"),
         (31, "`accumulate_grads`: scale each micro-batch loss and let `.backward()` accumulate"),
