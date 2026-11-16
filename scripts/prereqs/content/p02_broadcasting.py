@@ -99,12 +99,16 @@ print(grid)
 #  [10, 11, 12, 13],
 #  [20, 21, 22, 23]]   tens digit = row i, ones digit = column j
 
-# A causal mask is the same outer comparison. It's square because queries and keys
-# run over the same S positions, but the roles still differ: rows = queries, columns = keys.
-S = 4
-q, k = torch.arange(S), torch.arange(S)
-causal = k[None, :] > q[:, None]       # True where key k is in the future of query q
+# A causal mask is the same outer comparison, of POSITIONS: query at position p may see
+# key at position k only if k <= p. Its shape is (num queries, num keys), which is only
+# square in plain self-attention. With a KV cache (#14), 2 new queries attend to 5 keys:
+S_past, S_new = 3, 2
+q = torch.arange(S_past, S_past + S_new)   # query positions: 3, 4
+k = torch.arange(S_past + S_new)           # key positions:   0, 1, 2, 3, 4
+causal = k[None, :] > q[:, None]           # (2, 5): True where the key is in the query's future
 print(causal)
+# [[False, False, False, False,  True],
+#  [False, False, False, False, False]]
 '''),
         ("md", r'''
 ## 4. ⚠️ The silent bug: `(N,)` vs `(N, 1)`
