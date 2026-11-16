@@ -39,7 +39,7 @@ Notebooks beyond the problems: techniques interviewers ask about and real code u
 | B3 | [Mixed precision & devices](templates/00_b03_mixed_precision.ipynb) | float32 vs float16 vs bfloat16 (`torch.finfo`), overflow / underflow / accumulation error, what to keep in float32, `torch.autocast`, loss scaling (what `GradScaler` does), device-agnostic code and GPU timing | `count_overflow`, `softmax_lowp`, `unscale_and_check`, `to_device_like` | 02, 08, 25, 29, 31, 36 | ✅ |
 | B4 | [Sequence batching](templates/00_b04_sequence_batching.ipynb) | Padding and lengths, padding + causal masks, `DataLoader` with `collate_fn`, bucketing, next-token targets with `ignore_index`, packing with block-diagonal masks | `pad_batch`, `padding_mask`, `attention_mask_padded`, `next_token_batch`, `masked_token_loss` | 09, 13, 14, 16, 41 | ✅ |
 | B5 | [Vectorizing with torch.func](templates/00_b05_torch_func.ipynb) | `vmap` (in_dims, nesting), functional `grad`, `functional_call`, per-sample gradients, `jacrev` / `hessian`, model ensembles with `stack_module_state` | `batched_dot`, `pairwise_fn`, `per_sample_grads`, `jacobian_of`, `ensemble_forward` | 05, 21, 28, 40 | ✅ |
-| B6 | Memory & performance | | | | planned |
+| B6 | [Memory & performance](templates/00_b06_performance.ipynb) | Views vs copies (shared storage), in-place ops and autograd, measuring speed with `torch.utils.benchmark`, hidden syncs (`.item()`), peak memory: chunking, `no_grad`, activation checkpointing | `is_view_of`, `moving_average`, `chunked_attention`, `checkpointed_mlp` | 05, 13, 14, 22, 25 | ✅ |
 <!-- bonus-table:end -->
 
 ## Main path: the 42 problems by module
