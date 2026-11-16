@@ -22,6 +22,11 @@ PREREQS = [
 # Optional notebooks beyond the problems: (id, title). Content lives in content/bNN_*.py.
 BONUS = [
     ("B1", "Custom autograd functions"),
+    ("B2", "Debugging & testing tensors"),
+    ("B3", "Mixed precision & devices"),
+    ("B4", "Sequence batching"),
+    ("B5", "Vectorizing with torch.func"),
+    ("B6", "Memory & performance"),
 ]
 
 # (title, description, problem numbers in recommended order). Must cover every problem exactly once.
