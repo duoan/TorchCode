@@ -5,7 +5,7 @@ import traceback
 from contextlib import redirect_stdout, redirect_stderr
 from typing import Any, Dict, List, Optional
 
-from torch_judge.tasks import get_task, TASKS
+from torch_judge.tasks import get_task, task_function_names, TASKS
 
 def execute_code(task_id: str, user_code: str) -> Dict[str, Any]:
     """
@@ -23,6 +23,7 @@ def execute_code(task_id: str, user_code: str) -> Dict[str, Any]:
         }
 
     fn_name = task["function_name"]
+    fn_names = task_function_names(task)
     tests = task["tests"]
     total = len(tests)
     passed = 0
@@ -56,10 +57,12 @@ def execute_code(task_id: str, user_code: str) -> Dict[str, Any]:
                 "tests": []
             }
 
-    if fn_name not in namespace:
+    missing = [n for n in fn_names if n not in namespace]
+    if missing:
+        names = ", ".join(f"'{n}'" for n in missing)
         return {
             "success": False,
-            "error": f"Function or class '{fn_name}' not found. Did you define it?",
+            "error": f"Function or class {names} not found. Did you define it?",
             "stdout": stdout_capture.getvalue(),
             "stderr": stderr_capture.getvalue(),
             "passed": 0,
@@ -67,13 +70,13 @@ def execute_code(task_id: str, user_code: str) -> Dict[str, Any]:
             "tests": []
         }
 
-    user_fn = namespace[fn_name]
+    user_objs = {n: namespace[n] for n in fn_names}
     test_results: List[Dict[str, Any]] = []
 
     # 2. Run each test against the user's function
     for i, test in enumerate(tests, 1):
         test_code = test["code"].replace("{fn}", fn_name)
-        test_namespace: Dict[str, Any] = {fn_name: user_fn}
+        test_namespace: Dict[str, Any] = dict(user_objs)
         
         test_stdout = io.StringIO()
         test_stderr = io.StringIO()

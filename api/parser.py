@@ -31,8 +31,14 @@ def parse_notebook_template(filepath: str) -> dict:
                 source_str = "".join(source)
                 
                 # Check for the implementation placeholder
+                # Prerequisite notebooks have one implementation cell per exercise;
+                # concatenate them all so the web editor shows every stub.
                 if "# ✏️ YOUR IMPLEMENTATION HERE" in source_str:
-                    initial_code = "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\n" + source_str
+                    if not initial_code:
+                        initial_code = "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport math\n\n"
+                    else:
+                        initial_code += "\n\n"
+                    initial_code += source_str.rstrip() + "\n"
                     
         return {
             "description": description,
