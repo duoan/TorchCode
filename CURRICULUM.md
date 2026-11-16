@@ -36,7 +36,7 @@ Notebooks beyond the problems: techniques interviewers ask about and real code u
 |---|----------|--------|-----------|-----------|:------:|
 | B1 | [Custom autograd functions](templates/00_b01_custom_autograd.ipynb) | `torch.autograd.Function` (`forward`, `backward`, `ctx`), the backward contract, `gradcheck`, deriving backward rules (element-wise, matmul, reductions, softmax), gradient reversal | `ReLUFn`, `SigmoidFn`, `LinearFn`, `SoftmaxFn`, `FakeQuantFn` | 01, 02, 03, 16, 19, 36 | ✅ |
 | B2 | [Debugging & testing tensors](templates/00_b02_debugging.ipynb) | The common error messages decoded, `torch.testing.assert_close`, finding the first NaN with forward hooks, gradient health (missing and exploding gradients), a debugging workflow | `first_nan_module`, `params_without_grad`, `diff_report`, `grad_norms_by_name` | 13, 21, 25, 26, 28 | ✅ |
-| B3 | Mixed precision & devices | | | | planned |
+| B3 | [Mixed precision & devices](templates/00_b03_mixed_precision.ipynb) | float32 vs float16 vs bfloat16 (`torch.finfo`), overflow / underflow / accumulation error, what to keep in float32, `torch.autocast`, loss scaling (what `GradScaler` does), device-agnostic code and GPU timing | `count_overflow`, `softmax_lowp`, `unscale_and_check`, `to_device_like` | 02, 08, 25, 29, 31, 36 | ✅ |
 | B4 | [Sequence batching](templates/00_b04_sequence_batching.ipynb) | Padding and lengths, padding + causal masks, `DataLoader` with `collate_fn`, bucketing, next-token targets with `ignore_index`, packing with block-diagonal masks | `pad_batch`, `padding_mask`, `attention_mask_padded`, `next_token_batch`, `masked_token_loss` | 09, 13, 14, 16, 41 | ✅ |
 | B5 | Vectorizing with torch.func | | | | planned |
 | B6 | Memory & performance | | | | planned |
