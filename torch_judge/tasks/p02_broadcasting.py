@@ -112,10 +112,9 @@ x = torch.randn(32, 64, 32, 32); bias = torch.randn(64)
 a = torch.randn(512, 32); b = torch.randn(512, 32)
 t0 = time.perf_counter()
 for _ in range(5):
-    add_channel_bias(x, bias)
-    abs_distance_matrix(512)
-    pairwise_sq_dists(a, b)
+    outs = (add_channel_bias(x, bias), abs_distance_matrix(512), pairwise_sq_dists(a, b))
 elapsed = time.perf_counter() - t0
+assert all(isinstance(o, torch.Tensor) for o in outs), 'All exercises must return tensors before timing counts'
 assert elapsed < 5.0, f'Too slow: {elapsed:.2f}s. Are you looping over elements?'
 """,
         },
