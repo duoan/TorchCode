@@ -5,10 +5,24 @@ TASK = {
     "difficulty": "Hard",
     "function_name": "MultiHeadAttention",
     "hint": (
+        "Subclass nn.Module and call super().__init__() so the projections are registered. "
         "Use nn.Linear for Q/K/V/O projections. d_k = d_model // num_heads. "
         "Reshape to (B, heads, S, d_k), SDPA per head, concat, output projection."
     ),
     "tests": [
+        {
+            "name": "Is an nn.Module with registered projections",
+            "code": """
+import torch
+from torch import nn
+mha = {fn}(d_model=32, num_heads=4)
+assert isinstance(mha, nn.Module), 'MultiHeadAttention must subclass nn.Module'
+n = sum(p.numel() for p in mha.parameters())
+assert n == 4 * (32 * 32 + 32), f'Expected the 4 projections ({4 * (32 * 32 + 32)} elements) in mha.parameters(), found {n}. Call super().__init__() first'
+x = torch.randn(1, 5, 32)
+assert torch.allclose(mha(x, x, x), mha.forward(x, x, x)), 'Calling mha(Q, K, V) should run forward'
+""",
+        },
         {
             "name": "Output shape",
             "code": """

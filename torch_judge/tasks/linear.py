@@ -4,8 +4,21 @@ TASK = {
     "title": "Simple Linear Layer",
     "difficulty": "Medium",
     "function_name": "SimpleLinear",
-    "hint": "y = x @ W^T + b. Initialize weight with Kaiming scaling: randn * (1/sqrt(in_features)).",
+    "hint": "Subclass nn.Module, call super().__init__(), and wrap weight and bias in nn.Parameter. y = x @ W^T + b; initialize the weight with randn * (1/sqrt(in_features)).",
     "tests": [
+        {
+            "name": "Is an nn.Module with registered parameters",
+            "code": """
+import torch
+from torch import nn
+layer = {fn}(8, 4)
+assert isinstance(layer, nn.Module), 'SimpleLinear must subclass nn.Module'
+names = sorted(n for n, _ in layer.named_parameters())
+assert names == ['bias', 'weight'], f'weight and bias must be registered nn.Parameter attributes; found parameters {names}'
+x = torch.randn(3, 8)
+assert torch.allclose(layer(x), layer.forward(x)), 'Calling layer(x) should run forward'
+""",
+        },
         {
             "name": "Weight & bias shape",
             "code": """
