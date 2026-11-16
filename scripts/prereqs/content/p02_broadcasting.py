@@ -9,6 +9,21 @@ NOTEBOOK = {
     "file": "00_p02_broadcasting",
     "task_id": "p02_broadcasting",
     "title": "Broadcasting",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('C', 'channels'),
+        ('H', 'image height'),
+        ('W', 'image width'),
+        ('L', 'length of a 1-D signal, in the `(B, C, L)` example'),
+        ('N', 'number of rows'),
+        ('M', 'number of rows of the second set (pairwise distances)'),
+        ('D', 'feature dimension'),
+        ('S', 'sequence length (number of positions)'),
+        ('F', 'number of frequencies (RoPE)'),
+        ('S_past', 'number of positions already in a KV cache'),
+        ('S_new', 'number of new query positions'),
+    ],
     "intro": r'''
 # 🔵 Prerequisite 2: Broadcasting
 

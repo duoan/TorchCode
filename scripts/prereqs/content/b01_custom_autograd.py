@@ -9,6 +9,12 @@ NOTEBOOK = {
     "file": "00_b01_custom_autograd",
     "task_id": "b01_custom_autograd",
     "title": "Custom Autograd Functions",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('N', 'batch size (rows of `x`)'),
+        ('in / out', 'input / output features of `LinearFn`'),
+        ('V', 'number of classes (softmax over the last dim)'),
+    ],
     "covers": "`torch.autograd.Function` (`forward`, `backward`, `ctx`), the backward contract, `gradcheck`, deriving backward rules (element-wise, matmul, reductions, softmax), gradient reversal",
     "intro": r'''
 # ⭐ Bonus 1: Custom Autograd Functions

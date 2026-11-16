@@ -9,6 +9,11 @@ NOTEBOOK = {
     "file": "00_p10_training_loop",
     "task_id": "p10_training_loop",
     "title": "Training Loop & Randomness",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('N', 'number of examples in the dataset'),
+        ('V', 'vocabulary size (`sample_tokens`)'),
+    ],
     "imports": "import torch\nfrom torch import nn",
     "intro": r'''
 # 🔵 Prerequisite 10: Training Loop & Randomness

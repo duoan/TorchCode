@@ -9,6 +9,11 @@ NOTEBOOK = {
     "file": "00_p08_nn_module",
     "task_id": "p08_nn_module",
     "title": "nn.Module Anatomy",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('N', 'batch size (number of rows)'),
+        ('dim', 'number of features'),
+    ],
     "imports": "import torch\nfrom torch import nn",
     "intro": r'''
 # 🔵 Prerequisite 8: nn.Module Anatomy

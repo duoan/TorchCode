@@ -9,6 +9,17 @@ NOTEBOOK = {
     "file": "00_p01_tensor_basics",
     "task_id": "p01_tensor_basics",
     "title": "Tensor Basics",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('S', 'sequence length'),
+        ('D', 'feature dimension'),
+        ('N', 'number of rows (e.g. one scale per row in `quantize_int8`)'),
+        ('C_out', 'output channels / output features of a weight'),
+        ('C_in', 'input channels / input features'),
+        ('kH', 'kernel height'),
+        ('kW', 'kernel width'),
+    ],
     "intro": r'''
 # 🔵 Prerequisite 1: Tensor Basics
 

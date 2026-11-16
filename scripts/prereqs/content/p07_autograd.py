@@ -9,6 +9,11 @@ NOTEBOOK = {
     "file": "00_p07_autograd",
     "task_id": "p07_autograd",
     "title": "Autograd Essentials",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('D', 'number of parameters in `w`'),
+        ('n', 'examples per micro-batch'),
+    ],
     "intro": r'''
 # 🔵 Prerequisite 7: Autograd Essentials
 

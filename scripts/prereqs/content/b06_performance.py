@@ -9,6 +9,14 @@ NOTEBOOK = {
     "file": "00_b06_performance",
     "task_id": "b06_performance",
     "title": "Memory & Performance",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('S', 'sequence length'),
+        ('d', 'dimension of each query / key / value'),
+        ('N', 'length of the signal in `moving_average`'),
+        ('k', 'window size'),
+    ],
     "covers": "Views vs copies (shared storage), in-place ops and autograd, measuring speed with `torch.utils.benchmark`, hidden syncs (`.item()`), peak memory: chunking, `no_grad`, activation checkpointing",
     "imports": "import torch\nfrom torch import nn",
     "intro": r'''

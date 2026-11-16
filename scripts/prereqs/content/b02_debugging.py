@@ -9,6 +9,13 @@ NOTEBOOK = {
     "file": "00_b02_debugging",
     "task_id": "b02_debugging",
     "title": "Debugging & Testing Tensors",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('H', 'number of attention heads'),
+        ('S', 'sequence length'),
+        ('d', 'dimension per head'),
+    ],
     "covers": "The common error messages decoded, `torch.testing.assert_close`, finding the first NaN with forward hooks, gradient health (missing and exploding gradients), a debugging workflow",
     "imports": "import torch\nfrom torch import nn",
     "intro": r'''
