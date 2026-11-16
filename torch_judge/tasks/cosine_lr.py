@@ -2,7 +2,7 @@
 
 TASK = {
     "title": "Cosine LR Scheduler with Warmup",
-    "difficulty": "Medium",
+    "difficulty": "Easy",
     "function_name": "cosine_lr_schedule",
     "hint": "Warmup: linear ramp from 0 to max_lr over warmup_steps. Then cosine decay: min_lr + 0.5*(max_lr-min_lr)*(1+cos(pi*progress)).",
     "tests": [
