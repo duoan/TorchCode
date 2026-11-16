@@ -62,7 +62,7 @@ The statement fixes `fan_in = weight.shape[1]`. That is correct for `nn.Linear` 
 
 ### #03 Linear and #06 MHA are not `nn.Module`s
 Both reference solutions are plain Python classes (`self.weight` tensors with `requires_grad`, a `forward` method, no `super().__init__()`), while #13–#18, #23 and later problems subclass `nn.Module`. The README describes #03 as an `nn.Module`. Interviewers almost always expect `nn.Module`.
-**Fix:** once **P8 nn.Module anatomy** exists, convert both to `nn.Module` subclasses using `nn.Parameter` and update the tests (e.g. check `list(model.parameters())`).
+**Fix:** convert both to `nn.Module` subclasses using `nn.Parameter` and update the tests (e.g. check `list(model.parameters())`). **Now unblocked:** P8 nn.Module anatomy exists, so learners are taught registration before reaching #03. Converting changes what the judge accepts for two existing problems, so it needs a maintainer decision.
 
 ### Difficulty labels
 - **#05 Scaled Dot-Product Attention** (4 lines) is **Hard**, while **#23 Cross-Attention**, a full multi-head module, is **Medium**.

@@ -13,8 +13,8 @@ PREREQS = [
     ("P4", "Indexing & masking", None),
     ("P5", "Shape manipulation", None),
     ("P6", "Matmul & einsum", None),
-    ("P7", "Autograd essentials", [7, 20, 21, 29, 31, 37, 38, 39, 40, 41]),
-    ("P8", "nn.Module anatomy", [3, 13, 14, 15, 17, 18, 23, 26, 27, 28, 36]),
+    ("P7", "Autograd essentials", None),
+    ("P8", "nn.Module anatomy", None),
     ("P9", "Numerical stability & log-space", [2, 16, 25, 32, 34, 37, 38, 39, 41]),
     ("P10", "Training loop & randomness", [17, 29, 30, 31, 32, 33, 34, 40]),
 ]
