@@ -49,6 +49,7 @@ Two choices decide whether that works: **which `dim`** you reduce over, and whet
 
 ### Rules
 - **No Python loops** over tensor elements or channels. (Exercise 5 may loop over the *list* of tensors.)
+- **Return new tensors**: don't modify the inputs (the tests check).
 - Do **not** use `torch.softmax`, `F.normalize`, `torch.nn.utils.clip_grad_norm_`, or `torch.nn.functional` normalization layers.
 ''',
     "lesson": [

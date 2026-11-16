@@ -111,5 +111,29 @@ assert res == (75, 400), f'Conv (16, 3, 5, 5): expected (fan_in=3*5*5, fan_out=1
 assert all(type(v) is int for v in res), f'Return Python ints, got {[type(v).__name__ for v in res]}'
 """,
         },
+        {
+            "name": "Inputs are not modified (except by scale_inplace_)",
+            "code": """
+import torch
+def _changed(fn, *args):
+    before = [a.clone() if isinstance(a, torch.Tensor) else [t.clone() for t in a] if isinstance(a, list) else a for a in args]
+    out = fn(*args)
+    assert out is not None, f"{getattr(fn, '__name__', 'function')} returned None: implement it first"
+    for i, (a, b) in enumerate(zip(args, before)):
+        same = torch.equal(a, b) if isinstance(a, torch.Tensor) else all(torch.equal(x, y) for x, y in zip(a, b)) if isinstance(a, list) else True
+        if not same:
+            return i
+    return None
+def _check(name, fn, *args):
+    i = _changed(fn, *args)
+    assert i is None, f'{name} modified its input #{i + 1}: build and return a new tensor instead of writing into the input'
+
+_check('positive_mask', positive_mask, torch.tensor([-2.0, 0.0, 3.0, 0.5]))
+_check('running_max_init', running_max_init, torch.randn(2, 3, 4))
+_check('quantize_int8', quantize_int8, torch.tensor([0.4, -1.2, 500.0]), 0.1)
+_check('quantize_int8 (tensor scale)', quantize_int8, torch.tensor([[1.0, -2.0], [30.0, 60.0]]), torch.tensor([[0.5], [0.5]]))
+_check('fan_in_out', fan_in_out, torch.randn(4, 3, 2, 2))
+""",
+        },
     ],
 }

@@ -49,6 +49,7 @@ When you get broadcasting right, the code is short and fast. When you get it wro
 
 ### Rules
 - **No Python loops** over tensor elements. Every exercise is a one- or two-liner.
+- **Return new tensors**: don't modify the inputs (the tests check).
 - Do **not** use `torch.outer`, `torch.cdist`, `torch.einsum`, or `torch.Tensor.expand`. The point is to make broadcasting do the work.
 ''',
     "lesson": [
@@ -88,6 +89,9 @@ All three spellings below are equivalent:
 | `b.unsqueeze(0).unsqueeze(-1)` | `(1, C, 1)` |
 | `b[None, :, None]` | `(1, C, 1)` |
 | `b.view(1, -1, 1)` | `(1, C, 1)` |
+
+All three return **views** of `b`: nothing is copied and there's no meaningful speed difference, so pick whichever reads most clearly.
+One caution about `view`: `-1` means "infer this size", so on a **multi-dimensional** `x`, `x.view(1, -1, 1)` **flattens** the existing dimensions into one (and fails if `x` is non-contiguous, see P5 §1). When you only want to *add* dimensions, `unsqueeze` or `None` say so directly.
 '''),
         ("code", r'''
 x = torch.randn(2, 3, 4)       # (B, C, L)

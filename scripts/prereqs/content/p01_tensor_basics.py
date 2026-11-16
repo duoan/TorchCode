@@ -52,6 +52,7 @@ These details rarely appear in a problem statement, but they decide whether your
 
 ### Rules
 - **No Python loops** over tensor elements.
+- **Return new tensors**: don't modify the inputs (the tests check). The one exception is `scale_inplace_`, whose whole point is to modify `x`.
 - Do **not** use `torch.relu` / `F.relu` / `torch.heaviside` (Exercise 1) or `torch.nn.init` helpers (Exercise 5).
 ''',
     "lesson": [
@@ -240,6 +241,8 @@ Flash Attention keeps a running row-maximum that starts at `-inf`. Create it.
 
 - `scores`: `(B, S, D)`
 - returns: `(B, S, 1)` filled with `-inf`, with the **same dtype and device** as `scores`
+
+*It fits on one line with star-unpacking: `(*scores.shape[:-1], 1)` builds the shape for any number of leading dims (P5 §9).*
 ''',
             "stub": r'''
 def running_max_init(scores: torch.Tensor) -> torch.Tensor:
@@ -254,7 +257,7 @@ def running_max_init(scores: torch.Tensor) -> torch.Tensor:
 scores = torch.randn(2, 4, 8, dtype=torch.float64)
 m = running_max_init(scores)
 print(m.shape, m.dtype, m.device)   # expect torch.Size([2, 4, 1]) torch.float64 cpu
-print(m[0, :, 0])                   # expect all -inf
+print(m[0, :, 0])                   # batch item 0, every position (:), the single last entry (0): expect all -inf
 ''',
         },
         {
@@ -321,7 +324,7 @@ Compute the fan-in and fan-out used by weight initializers.
   - Linear: `fan_in = in_features`, `fan_out = out_features`
   - Conv: `fan_in = C_in * kH * kW`, `fan_out = C_out * kH * kW`
 
-*#20 Kaiming Init uses `std = sqrt(2 / fan_in)`.*
+*Why it matters: each output of a layer sums `fan_in` products, so the more inputs, the bigger the sum. Initializers scale the starting weights by about `1 / sqrt(fan_in)` (#20 Kaiming Init uses `std = sqrt(2 / fan_in)`) so activations neither blow up nor vanish as layers stack.*
 ''',
             "stub": r'''
 def fan_in_out(weight: torch.Tensor) -> tuple[int, int]:
@@ -329,7 +332,10 @@ def fan_in_out(weight: torch.Tensor) -> tuple[int, int]:
 ''',
             "solution": r'''
 def fan_in_out(weight: torch.Tensor) -> tuple[int, int]:
-    receptive_field = weight[0][0].numel()   # 1 for Linear, kH * kW for conv
+    # weight[0, 0] is ONE kernel (output channel 0, input channel 0): a single number for
+    # Linear, a (kH, kW) grid for conv. numel() counts its elements (1 or kH * kW); it never
+    # reads the values. Every kernel has the same shape, so the first one is enough.
+    receptive_field = weight[0, 0].numel()
     return weight.shape[1] * receptive_field, weight.shape[0] * receptive_field
 ''',
             "debug": r'''
