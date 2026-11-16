@@ -33,9 +33,7 @@ The recommended order lives in **[LEARNING_PATH.md](LEARNING_PATH.md)**. It grou
 
 ## Notes on existing problems
 
-- **#03 Linear** and **#06 MHA** reference solutions are plain Python classes, not `nn.Module` subclasses, but the README describes #03 as an `nn.Module`. Once P8 exists, these two should be aligned with it.
-- **#40 Linear Regression** is the gentlest end-to-end problem (closed form, manual GD, then `nn.Linear` plus an optimizer). It is a good bridge from Track 0 into the main set, even though it is labelled Medium.
-- **#30 Cosine LR** and **#35 BPE** use almost no tensor operations and need no prerequisites.
+Issues found while building this curriculum (a toolbar bug, statement inaccuracies, inconsistent difficulty labels, and more) are tracked in **[IMPROVEMENTS.md](IMPROVEMENTS.md)**.
 
 ## Adding a prerequisite notebook
 
