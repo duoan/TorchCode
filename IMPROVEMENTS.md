@@ -3,23 +3,29 @@
 Issues and suggestions found while reviewing all 41 problems (templates, reference solutions, and judge tests) to design the [prerequisite curriculum](CURRICULUM.md).
 Each item says what is wrong, why it matters, and a suggested fix. Items are grouped by how much they affect learners today.
 
+**Status:** items marked ✅ are fixed on the `fix/problem-quick-fixes` branch (also merged into `feat/prereq-curriculum`), which can be sent upstream as its own PR. Unmarked items are still open.
+
 ## 🐛 Bugs
 
-### JupyterLab Check/Hint buttons fail on #06 Multi-Head Attention
+### ✅ JupyterLab Check/Hint buttons fail on #06 Multi-Head Attention and on solution notebooks
 `labextension/src/index.ts` infers the task id from the file name (`06_multihead_attention.ipynb` → `multihead_attention`), but the judge task is registered as `mha`. Clicking **Check** or **Hint** in the toolbar runs `check("multihead_attention")` and prints *Unknown task*. The submit cell inside the notebook works because it hard-codes `check("mha")`. The web API already handles this case with `TASK_ID_ALIASES` in `api/parser.py`.
-**Fix:** add the same alias map to the lab extension, or rename either the task module or the notebook so the two names match.
+The same function also turned every solution notebook's name into a task id with a `_solution` suffix (e.g. `relu_solution`), so the buttons failed on all 41 solution notebooks too.
+**Fixed:** the extension now strips `_solution` and uses the same alias map as `api/parser.py`. Verified that all 82 template and solution notebooks map to a real judge task, and type-checked against JupyterLab 4.
 
-### Timing tests pass against an unimplemented stub
+### ✅ Tests that pass against an unimplemented stub
 The "Performance" test in **#01 ReLU** and the timing test in **#12 Linear Attention** only measure elapsed time. A blank template (`pass`, returning `None`) runs instantly and gets a ✅, so learners see a misleading partial pass before writing any code.
-**Fix:** assert that the output is a tensor of the expected shape inside the timed test. *(Already fixed for the new P2 Broadcasting prerequisite.)*
+Running every blank template through the judge found three more: **#21 Gradient Clipping** ("No change when norm < max_norm" and "Preserves direction" both hold when the function does nothing) and **#36 INT8 Quantization** ("Weight is buffer not parameter" only checked that the weight was *not* a parameter).
+**Fixed:** timing tests now require a tensor output; #21 also checks the returned total norm and that clipping actually happens; #36 requires `weight_int8` and `scale` to be registered buffers. All 41 blank templates now pass 0 tests, and every reference solution still passes all of its tests.
 
 ## 📐 Accuracy of problem statements
 
-### #11 Sliding Window Attention: Longformer vs Mistral
+### ✅ #11 Sliding Window Attention: Longformer vs Mistral
 The statement says the problem is "used in Longformer, Mistral, etc." and defines the window as two-sided: position *i* attends to every *j* with `abs(i - j) <= w`. That is the **Longformer-style (bidirectional)** window. **Mistral's** sliding window is **causal**: position *i* attends only to `[i - w, i]`, which is the mask `(i - j < 0) | (i - j > w)`. The solution and tests implement only the bidirectional version, so the Mistral reference is misleading.
 **Fix (pick one):**
 - Reword the statement to "bidirectional sliding window (Longformer-style)" and drop or qualify the Mistral reference.
 - Add a `causal: bool` argument (or a follow-up problem) for the Mistral variant. It combines naturally with #09 Causal Attention and #14 KV Cache.
+
+**Fixed (first option):** the statement now says "bidirectional (Longformer-style)" and adds a note that Mistral's window is causal, suggesting a causal variant as an extension. The README's key concepts no longer say "Mistral-style". A `causal` argument is still open as a possible follow-up problem.
 
 **Prerequisite coverage (done for P2, planned for P4):** P2 Broadcasting now teaches both grids. `abs_distance_matrix(n)` (`abs(i - j)`) matches #11 as written, and the signed `relative_position(n)` (`R[i, j] = i - j`) keeps the direction, so every attention mask is one comparison on it:
 
@@ -31,25 +37,26 @@ The statement says the problem is "used in Longformer, Mistral, etc." and define
 
 P4 Indexing & masking is planned to include `attention_mask(n, kind, w)`, which builds all three from `relative_position` and applies them with `masked_fill`. That is where the Longformer vs Mistral distinction gets taught in full.
 
-### #24 RoPE: two pairing conventions
+### ✅ #24 RoPE: two pairing conventions
 The statement says RoPE is "used in LLaMA, GPT-NeoX" and rotates **adjacent pairs** `(x[2k], x[2k+1])`. This interleaved convention matches the original RoFormer paper and Meta's LLaMA reference code. GPT-NeoX and the Hugging Face LLaMA implementation instead pair `x[k]` with `x[k + D/2]` (`rotate_half`). Both encode relative position, but they are **not interchangeable** when loading pretrained weights. Interviewers often ask about this.
-**Fix:** add a note naming both conventions and stating which one the problem uses. Optionally add a `rotate_half` follow-up.
+**Fixed:** the statement now has a convention note naming both styles. A `rotate_half` follow-up is still open.
 
 ### #07 BatchNorm: running variance differs from PyTorch
 The solution and judge update `running_var` with the **biased** batch variance (`unbiased=False`). `nn.BatchNorm1d` normalizes with the biased variance but updates `running_var` with the **unbiased** one (verified: after one step on an `8 × 4` batch, the two give different `running_var` values). A learner who matches PyTorch exactly fails the "running stats update" test.
 **Fix:** use `x.var(dim=0, unbiased=True)` for the running-stat update in both the solution and the test, or state the simplification explicitly in the problem.
 
-### #38 GRPO: simplified objective
+### ✅ #38 GRPO: simplified objective
 The statement describes GRPO as baseline-subtracted REINFORCE with group-normalized advantages, and it is honest about that. The GRPO objective from the DeepSeekMath paper also includes the **PPO-style clipped importance ratio** and a **KL penalty** against a reference policy. Interview questions about GRPO usually expect those terms.
 **Fix:** name this "GRPO advantage + policy-gradient core" in the statement, or add a follow-up that combines it with #39 PPO (clipped ratio) and a KL term. The statement's "RLAIF" framing could also mention verifiable rewards (RLVR), where GRPO is most often used.
+**Fixed (wording):** a scope note now says what the full objective adds (clipped ratio, KL penalty), and the framing says RL fine-tuning / RLVR. A combined follow-up problem is still open.
 
-### #03 Linear Layer: init is not Kaiming
+### ✅ #03 Linear Layer: init is not Kaiming
 The README's key concepts for #03 list "Kaiming init", but the template asks for `randn * (1/√in_features)`. That is LeCun-style variance scaling. Kaiming would be `√(2/in_features)`, which is #20.
-**Fix:** change the README's key concepts to "variance-scaled init (`1/√fan_in`)".
+**Fixed:** the README now says "`1/√fan_in` init".
 
-### #20 Kaiming Init: `fan_in` only correct for 2-D weights
+### ✅ #20 Kaiming Init: `fan_in` only correct for 2-D weights
 The statement fixes `fan_in = weight.shape[1]`. That is correct for `nn.Linear` weights but not for conv weights `(C_out, C_in, kH, kW)`, where `fan_in = C_in * kH * kW`.
-**Fix:** mention the conv case in the statement, or add a test with a 4-D weight and generalize to `weight[0].numel()`.
+**Fixed (statement):** a note now explains the conv case and `weight[0].numel()`. A 4-D test is still open.
 
 ## 🧩 Consistency
 
