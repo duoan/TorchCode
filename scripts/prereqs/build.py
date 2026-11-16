@@ -38,6 +38,7 @@ sys.path.insert(0, str(HERE))
 import curriculum  # noqa: E402
 
 from repo_config import COLAB_BLOB as COLAB_URL, GITHUB_BLOB as REPO_URL  # noqa: E402  (set in repo.json)
+from notation import render_box, used_entries  # noqa: E402
 DIFF_ICON = {"Easy": "🟢", "Medium": "🟡", "Hard": "🔴"}
 # Template file stems whose judge task id differs (keep in sync with api/parser.py)
 TASK_ID_ALIASES = {"multihead_attention": "mha"}
@@ -146,8 +147,9 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
     if solution:
         header = (f"# 📖 Solution: {nb_def['title']}\n\nReference solutions for every exercise in "
                   f"`{nb_def['file']}.ipynb`. Try the template first!")
+        header += "{NOTATION_END}"
     else:
-        header = (nb_def["intro"].strip("\n") + "\n\n"
+        header = (nb_def["intro"].strip("\n") + "\n\n" + "{NOTATION_MID}"
                   + HOW_TO_USE.strip("\n").format(
                       task_id=task_id, file=nb_def["file"],
                       last_item=HOW_TO_LAST_BONUS if is_bonus(nb_def) else HOW_TO_LAST_PREREQ))
@@ -172,6 +174,14 @@ def render_notebook(nb_def: dict, problems: dict, solution: bool) -> str:
     if not solution:
         cells.append(code(f'# 💡 Stuck? Uncomment for a nudge\n# hint("{task_id}")'))
     cells.append(unlocks_cell(nb_def, problems))
+
+    # Notation box: only the symbols this file actually uses
+    body = cells[0]["source"].replace("{NOTATION_MID}", "").replace("{NOTATION_END}", "") + "\n" + \
+        "\n".join(c["source"] for c in cells[1:])
+    box = render_box(here) if (here := used_entries(nb_def.get("notation", []), body)) else ""
+    cells[0]["source"] = (cells[0]["source"]
+                          .replace("{NOTATION_MID}", box + "\n\n" if box else "")
+                          .replace("{NOTATION_END}", "\n\n" + box if box else ""))
 
     for c in cells:
         c["source"] = c["source"].splitlines(keepends=True)
@@ -289,6 +299,10 @@ def main() -> int:
 
     outputs: dict[Path, str] = {}
     for nb in notebooks:
+        rendered = render_notebook(nb, problems, solution=False) + render_notebook(nb, problems, solution=True)
+        unused = [s for s, _ in nb.get("notation", []) if not used_entries([(s, "")], rendered.replace(f"`{s}`", ""))]
+        if unused:
+            raise SystemExit(f"{nb['file']}: notation lists symbols used in neither notebook: {unused}")
         outputs[ROOT / "templates" / f"{nb['file']}.ipynb"] = render_notebook(nb, problems, solution=False)
         outputs[ROOT / "solutions" / f"{nb['file']}_solution.ipynb"] = render_notebook(nb, problems, solution=True)
     outputs[ROOT / "LEARNING_PATH.md"] = render_learning_path(notebooks, problems)

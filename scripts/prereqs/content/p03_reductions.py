@@ -9,6 +9,16 @@ NOTEBOOK = {
     "file": "00_p03_reductions",
     "task_id": "p03_reductions",
     "title": "Reductions Along Dims",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('C', 'channels'),
+        ('H', 'image height'),
+        ('W', 'image width'),
+        ('S', 'sequence length'),
+        ('D', 'feature dimension'),
+        ('N', 'number of elements reduced over'),
+    ],
     "intro": r'''
 # 🔵 Prerequisite 3: Reductions Along Dims
 

@@ -50,6 +50,29 @@ The recommended order lives in **[LEARNING_PATH.md](LEARNING_PATH.md)**. It grou
 
 Issues found while building this curriculum (a toolbar bug, statement inaccuracies, inconsistent difficulty labels, and more) are tracked in **[IMPROVEMENTS.md](IMPROVEMENTS.md)**.
 
+## Notation
+
+Shapes are written with short symbols. Most follow PyTorch's docs and the papers the problems come from, so **some letters mean different things in different notebooks**. Rather than rename them, every notebook that uses shape symbols has a **📐 Notation** box in its first cell listing the symbols *that file* uses and what they mean there. The boxes come from `scripts/notation.py` (problems) and the `notation` field of each `scripts/prereqs/content/*.py` file (prerequisites and bonuses). `make prereqs` writes them, and `make prereqs-check` fails if one is missing, stale, or lists a symbol the notebook never uses.
+
+| Symbol | Usual meaning | Also means | Where the other meaning appears |
+|--------|---------------|------------|---------------------------------|
+| `B` | batch size | | |
+| `N` | number of rows / examples | **batch size** in image notation `(N, C, H, W)` (PyTorch's convention); number of **patches** | #07, #42, P8; P5, #27 |
+| `S` | sequence length | | `T` (B4) and `L` (P2) are also used for lengths |
+| `S_q`, `S_k`, `S_kv` | number of queries / keys / key-value tokens | | |
+| `S_past`, `S_new` | tokens already cached / new tokens (KV cache) | | |
+| `D` | model / feature dimension (`d_model`) | | |
+| `d`, `d_k`, `d_v` | per-head dimension, `D // H`; query-key / value dimension | | |
+| `H` | number of attention **heads** | image **height** | P2, P3, P5, P6, #22, #27, #42 (P5 and P6 use both) |
+| `W` | image **width** | a **weight matrix** `(out, in)` | P6, #03 |
+| `C` | **channels** | number of **classes** | P4, #16 |
+| `V` | the **value** tensor in `Q, K, V` | **vocabulary** size `(..., V)` | P4, P9, P10, B1, B4, #34, #41 |
+| `K` | the **key** tensor | number of **draft tokens** | #34 |
+| `T` | number of target positions (B4) | number of **teachers** | #41 |
+| `k` | top-k / kernel or window size | | `kH`, `kW` are kernel height / width |
+| `p` | patch size | probability (top-p), padding, dropout rate (`p_drop`) | P5, #27; #32; B6; P10 |
+| `M`, `F`, `G`, `E`, `r` | second set size, frequencies, groups, ensemble size, LoRA rank | | P2, P2, P4, B5, P6 |
+
 ## Adding a prerequisite notebook
 
 The prerequisite notebooks and `LEARNING_PATH.md` are **generated** from Python definitions in [`scripts/prereqs/`](scripts/prereqs/). Edit the definitions, not the generated files; the next build overwrites the generated files.

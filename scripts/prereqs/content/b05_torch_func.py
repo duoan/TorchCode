@@ -9,6 +9,16 @@ NOTEBOOK = {
     "file": "00_b05_torch_func",
     "task_id": "b05_torch_func",
     "title": "Vectorizing with torch.func",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('S', 'number of keys (sequence length)'),
+        ('d', 'vector dimension'),
+        ('D', 'feature dimension'),
+        ('N', 'rows of `X`'),
+        ('M', 'rows of `Y`'),
+        ('E', 'number of models in the ensemble'),
+    ],
     "covers": "`vmap` (in_dims, nesting), functional `grad`, `functional_call`, per-sample gradients, `jacrev` / `hessian`, model ensembles with `stack_module_state`",
     "imports": "import copy\nimport torch\nfrom torch import nn\nfrom torch.func import vmap, grad, functional_call, jacrev, hessian, stack_module_state",
     "intro": r'''

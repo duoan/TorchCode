@@ -9,6 +9,16 @@ NOTEBOOK = {
     "file": "00_b04_sequence_batching",
     "task_id": "b04_sequence_batching",
     "title": "Sequence Batching",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size (number of sequences)'),
+        ('S', 'padded sequence length'),
+        ('S_max', 'length of the longest sequence'),
+        ('S_q', 'number of queries'),
+        ('S_k', 'number of keys'),
+        ('T', 'number of target positions, `S - 1` after shifting'),
+        ('V', 'vocabulary size'),
+    ],
     "covers": "Padding and lengths, padding + causal masks, `DataLoader` with `collate_fn`, bucketing, next-token targets with `ignore_index`, packing with block-diagonal masks",
     "imports": "import torch\nimport torch.nn.functional as F",
     "intro": r'''

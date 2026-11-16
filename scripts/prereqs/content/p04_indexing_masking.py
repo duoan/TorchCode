@@ -9,6 +9,17 @@ NOTEBOOK = {
     "file": "00_p04_indexing_masking",
     "task_id": "p04_indexing_masking",
     "title": "Indexing & Masking",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('C', 'number of classes (`pick_per_row`)'),
+        ('V', 'vocabulary size (`keep_topk`, `unsort`)'),
+        ('S_q', 'number of queries'),
+        ('S_k', 'number of keys'),
+        ('n', 'sequence length for `attention_mask`'),
+        ('w', 'window size'),
+        ('G', 'number of groups (`group_mean`)'),
+    ],
     "intro": r'''
 # 🔵 Prerequisite 4: Indexing & Masking
 

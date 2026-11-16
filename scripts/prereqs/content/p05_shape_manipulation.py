@@ -9,6 +9,27 @@ NOTEBOOK = {
     "file": "00_p05_shape_manipulation",
     "task_id": "p05_shape_manipulation",
     "title": "Shape Manipulation",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('S', 'sequence length'),
+        ('D', 'model dimension'),
+        ('H', 'number of attention heads (Exercises 1–3); **image height** in Exercises 5–6 and lesson §6'),
+        ('d', 'dimension per head, `D // H`'),
+        ('H_kv', 'number of key/value heads (GQA), also written `Hkv`'),
+        ('n_rep', 'how many query heads share each key/value head'),
+        ('C', 'image channels'),
+        ('W', 'image width'),
+        ('p', 'patch size (`patchify`)'),
+        ('N', 'number of patches'),
+        ('n_h', 'patches per column, `H // p`'),
+        ('n_w', 'patches per row, `W // p`'),
+        ('p_row', 'row inside a patch'),
+        ('p_col', 'column inside a patch'),
+        ('k', 'window (kernel) size in `sliding_windows`'),
+        ('H_out', 'number of windows along the height'),
+        ('W_out', 'number of windows along the width'),
+    ],
     "imports": "import torch\nimport torch.nn.functional as F",
     "intro": r'''
 # 🔵 Prerequisite 5: Shape Manipulation

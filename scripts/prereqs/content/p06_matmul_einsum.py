@@ -9,6 +9,26 @@ NOTEBOOK = {
     "file": "00_p06_matmul_einsum",
     "task_id": "p06_matmul_einsum",
     "title": "Matmul & Einsum",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('B', 'batch size'),
+        ('S', 'sequence length'),
+        ('S_q', 'number of queries'),
+        ('S_k', 'number of keys'),
+        ('H', 'number of attention heads (lessons §2–4); **image height** in `patch_conv`'),
+        ('d', 'dimension of each query / key vector (per head)'),
+        ('d_k', 'query / key dimension'),
+        ('d_v', 'value dimension'),
+        ('W', 'a weight matrix `(out_features, in_features)`; `W_out` is an output **width**'),
+        ('N', 'number of rows / examples'),
+        ('r', 'LoRA rank'),
+        ('C_in', 'input channels'),
+        ('C_out', 'output channels'),
+        ('kH', 'kernel height'),
+        ('kW', 'kernel width'),
+        ('H_out', 'output height'),
+        ('W_out', 'output width'),
+    ],
     "intro": r'''
 # 🔵 Prerequisite 6: Matmul & Einsum
 

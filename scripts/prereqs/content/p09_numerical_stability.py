@@ -9,6 +9,12 @@ NOTEBOOK = {
     "file": "00_p09_numerical_stability",
     "task_id": "p09_numerical_stability",
     "title": "Numerical Stability & Log-Space",
+    # Shape symbols used in this notebook, shown in the "📐 Notation" box
+    "notation": [
+        ('V', 'vocabulary size (number of logits)'),
+        ('S_q', 'number of queries'),
+        ('S_k', 'number of keys'),
+    ],
     "imports": "import torch\nimport torch.nn.functional as F",
     "intro": r'''
 # 🔵 Prerequisite 9: Numerical Stability & Log-Space
