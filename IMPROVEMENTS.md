@@ -62,15 +62,28 @@ The statement fixes `fan_in = weight.shape[1]`. That is correct for `nn.Linear` 
 
 ## 🧩 Consistency
 
-### #03 Linear and #06 MHA are not `nn.Module`s
-Both reference solutions are plain Python classes (`self.weight` tensors with `requires_grad`, a `forward` method, no `super().__init__()`), while #13–#18, #23 and later problems subclass `nn.Module`. The README describes #03 as an `nn.Module`. Interviewers almost always expect `nn.Module`.
-**Fix:** convert both to `nn.Module` subclasses using `nn.Parameter` and update the tests (e.g. check `list(model.parameters())`). **Now unblocked:** P8 nn.Module anatomy exists, so learners are taught registration before reaching #03. Converting changes what the judge accepts for two existing problems, so it needs a maintainer decision.
+### ✅ #03 Linear and #06 MHA are not `nn.Module`s
+Both reference solutions were plain Python classes (`self.weight` tensors with `requires_grad`, a `forward` method, no `super().__init__()`), while #13–#18, #23 and later problems subclass `nn.Module`. The README already described both as `nn.Module`s. Interviewers almost always expect `nn.Module`.
+**Fixed:** templates, statements and reference solutions subclass `nn.Module` (#03 uses `nn.Parameter`). Each problem has a new test: `isinstance(..., nn.Module)`, parameters registered, and `module(x)` runs `forward`. A plain-class answer now fails only that test, with "must subclass nn.Module". The #03 statement points to P8.
 
 ### Difficulty labels
-- **#05 Scaled Dot-Product Attention** (4 lines) is **Hard**, while **#23 Cross-Attention**, a full multi-head module, is **Medium**.
-- **#40 Linear Regression** is **Medium** but is the gentlest end-to-end problem (closed form, manual gradient descent, then `nn.Linear` with an optimizer). In [LEARNING_PATH.md](LEARNING_PATH.md) it opens Module 4 and works well as the bridge from Track 0 into the main set.
+**Principle:** grade by how hard the problem is to *implement* once the prerequisites are done. The README's 🔥/⭐/💡 column already says how advanced or interview-relevant a topic is.
 
-**Fix:** re-grade #05 to Medium and #23 to Hard (or at least Medium → Hard for #23), and consider #40 → Easy.
+✅ **Fixed (clear inconsistencies):**
+- **#05 Scaled Dot-Product Attention:** Hard → **Medium** (four lines; easier than the multi-head problems built on it)
+- **#23 Cross-Attention:** Medium → **Hard** (a full multi-head module, the same work as #06)
+- **#30 Cosine LR Scheduler:** Medium → **Easy** (pure arithmetic)
+
+Task files, notebook titles, README badges, the welcome notebook and `LEARNING_PATH.md` are updated, and the README/welcome tables are re-ordered to stay Easy → Medium → Hard. Eight Medium notebooks also used a stray 🟠 icon in their title; every title now matches its task's difficulty.
+
+**Still open (judgment calls):**
+
+| # | Problem | Now | Could be | Argument |
+|---|---------|-----|----------|----------|
+| 09, 11 | Causal / Sliding Window Attention | Hard | Medium | Each is #05 plus a one-line mask |
+| 36 | INT8 Quantization | Hard | Medium | About 5 lines once P1 and P8 are known |
+| 37, 39 | DPO / PPO Loss | Hard | Medium | 3–4 lines; the difficulty is conceptual |
+| 40 | Linear Regression | Medium | Easy | Gentlest end-to-end problem, but has three parts. In [LEARNING_PATH.md](LEARNING_PATH.md) it opens Module 4 as the bridge from Track 0 |
 
 ## 🗺️ Curriculum notes
 
