@@ -1,0 +1,280 @@
+"""Prerequisite 2: Broadcasting.
+
+Content for templates/00_p02_broadcasting.ipynb and its solution notebook.
+Edit here, then run `make prereqs`; never edit the generated notebooks by hand.
+"""
+
+NOTEBOOK = {
+    "prereq_id": "P2",
+    "file": "00_p02_broadcasting",
+    "task_id": "p02_broadcasting",
+    "title": "Broadcasting",
+    "intro": r'''
+# 🔵 Prerequisite 2: Broadcasting
+
+Almost every problem in TorchCode quietly relies on **broadcasting**: adding a bias of shape `(C,)` to a feature map of shape `(B, C, H, W)`, scaling normalized activations by `gamma`, building an `|i - j|` mask for sliding-window attention, or multiplying positions by frequencies in RoPE.
+
+When you get broadcasting right, the code is short and fast. When you get it wrong, PyTorch often **does not raise an error**. It silently produces a tensor of the wrong shape.
+
+### What you'll learn
+1. The broadcasting rule (align from the right)
+2. Adding size-1 dimensions on purpose (`unsqueeze`, `None`, `view`)
+3. "Outer" operations: combining every element of `a` with every element of `b`
+4. The classic silent bug: `(N,)` vs `(N, 1)`
+
+### Exercises
+| # | Function | Shows up in |
+|---|----------|-------------|
+| 1 | `add_channel_bias(x, b)` | #22 Conv2d |
+| 2 | `scale_rows(x, s)` | #04 LayerNorm, #07 BatchNorm, #28 MoE |
+| 3 | `abs_distance_matrix(n)` | #11 Sliding Window Attention |
+| 4 | `outer_angles(positions, freqs)` | #24 RoPE |
+| 5 | `pairwise_sq_dists(a, b)` | k-NN, clustering, contrastive losses |
+
+### Rules
+- **No Python loops** over tensor elements. Every exercise is a one- or two-liner.
+- Do **not** use `torch.outer`, `torch.cdist`, `torch.einsum`, or `torch.Tensor.expand`. The point is to make broadcasting do the work.
+''',
+    "lesson": [
+        ("md", r'''
+## 1. The rule
+
+Two shapes are compatible if, **comparing from the rightmost dimension**, each pair of sizes is either equal, or one of them is `1`, or one of them is missing.
+The result takes the larger size in each position.
+
+```
+x:      (4, 3, 5)
+y:         (3, 1)
+result: (4, 3, 5)     # y is treated as (1, 3, 1) and stretched
+```
+
+No data is copied. The size-1 dimension is "stretched" virtually.
+'''),
+        ("code", r'''
+x = torch.randn(4, 3, 5)
+y = torch.randn(3, 1)
+print((x + y).shape)          # torch.Size([4, 3, 5])
+
+# Incompatible: compare right-to-left: 5 vs 3 -> neither is 1 -> error
+try:
+    torch.randn(4, 5) + torch.randn(3)
+except RuntimeError as e:
+    print("RuntimeError:", str(e)[:80])
+'''),
+        ("md", r'''
+## 2. Adding size-1 dimensions on purpose
+
+Often the dimensions you want to match are **not** the rightmost ones. Then you insert size-1 dimensions so the shapes line up the way you mean.
+All three spellings below are equivalent:
+
+| Spelling | Result for `b` of shape `(C,)` |
+|----------|-------------------------------|
+| `b.unsqueeze(0).unsqueeze(-1)` | `(1, C, 1)` |
+| `b[None, :, None]` | `(1, C, 1)` |
+| `b.view(1, -1, 1)` | `(1, C, 1)` |
+'''),
+        ("code", r'''
+x = torch.randn(2, 3, 4)       # (B, C, L)
+b = torch.tensor([10., 20., 30.])  # one value per channel C
+
+# x + b  would try to align b with L=4 -> error. Line it up with C instead:
+out = x + b[None, :, None]
+print(out.shape)
+print(out[0, :, 0] - x[0, :, 0])   # tensor([10., 20., 30.])
+'''),
+        ("md", r'''
+## 3. Outer operations
+
+Combining a column `(N, 1)` with a row `(1, M)` gives an `(N, M)` grid where entry `[i, j]` uses `a[i]` and `b[j]`.
+This is how you build attention masks, position-frequency tables, and pairwise distances **without loops**.
+'''),
+        ("code", r'''
+i = torch.arange(4)
+grid = i[:, None] * 10 + i[None, :]   # (4, 1) op (1, 4) -> (4, 4)
+print(grid)
+
+# A causal mask is just an outer comparison:
+causal = i[None, :] > i[:, None]      # True where key j is in the future of query i
+print(causal)
+'''),
+        ("md", r'''
+## 4. ⚠️ The silent bug: `(N,)` vs `(N, 1)`
+
+A model's prediction often has shape `(N, 1)` while the target has shape `(N,)`.
+Subtracting them **does not fail**. It broadcasts to `(N, N)`, and your loss is then averaged over the wrong thing.
+'''),
+        ("code", r'''
+pred = torch.randn(5, 1)
+target = torch.randn(5)
+diff = pred - target
+print("pred - target shape:", diff.shape, "<- (5, 5)! almost certainly a bug")
+print("fixed:", (pred.squeeze(-1) - target).shape)
+'''),
+        ("md", r'''
+> **Habit to build:** after every broadcasting op you're not 100% sure about, `print(t.shape)`. Assert shapes in your own code: `assert out.shape == (B, C, H, W)`.
+'''),
+    ],
+    "exercises_intro": r'''
+---
+# ✏️ Exercises
+
+Implement the five functions below. Each one has a debug cell you can use to check shapes before you submit.
+''',
+    "exercises": [
+        {
+            "spec": r'''
+### Exercise 1: `add_channel_bias(x, b)`
+
+Add a per-channel bias to a batch of images.
+
+- `x`: `(B, C, H, W)`
+- `b`: `(C,)`
+- returns: `(B, C, H, W)` where `out[n, c, h, w] = x[n, c, h, w] + b[c]`
+
+*This is exactly the last line of #22 Conv2d.*
+''',
+            "stub": r'''
+def add_channel_bias(x: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def add_channel_bias(x: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    return x + b.view(1, -1, 1, 1)
+''',
+            "debug": r'''
+x = torch.zeros(2, 3, 4, 4)
+b = torch.tensor([1., 2., 3.])
+out = add_channel_bias(x, b)
+print(out.shape)          # expect torch.Size([2, 3, 4, 4])
+print(out[0, :, 0, 0])    # expect tensor([1., 2., 3.])
+''',
+        },
+        {
+            "spec": r'''
+### Exercise 2: `scale_rows(x, s)`
+
+Multiply each row of a matrix by its own scalar.
+
+- `x`: `(N, D)`
+- `s`: `(N,)`
+- returns: `(N, D)` where `out[i, :] = s[i] * x[i, :]`
+
+*In #28 MoE, each token's expert output is scaled by its routing weight in exactly this way.*
+''',
+            "stub": r'''
+def scale_rows(x: torch.Tensor, s: torch.Tensor) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def scale_rows(x: torch.Tensor, s: torch.Tensor) -> torch.Tensor:
+    return x * s[:, None]
+''',
+            "debug": r'''
+x = torch.ones(3, 4)
+s = torch.tensor([1., 2., 3.])
+print(scale_rows(x, s))   # rows of 1s, 2s, 3s
+# Hint: what does x * s do when N == D? Try torch.ones(3, 3) * s.
+''',
+        },
+        {
+            "spec": r'''
+### Exercise 3: `abs_distance_matrix(n)`
+
+Build the `(n, n)` matrix of absolute index distances `D[i, j] = |i - j|`.
+
+- `n`: int
+- returns: `(n, n)` integer tensor (dtype `torch.long`)
+
+*#11 Sliding Window Attention masks every position where `|i - j| > window_size`.*
+''',
+            "stub": r'''
+def abs_distance_matrix(n: int) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def abs_distance_matrix(n: int) -> torch.Tensor:
+    idx = torch.arange(n)
+    return (idx[:, None] - idx[None, :]).abs()
+''',
+            "debug": r'''
+print(abs_distance_matrix(5))
+# Expected:
+# [[0, 1, 2, 3, 4],
+#  [1, 0, 1, 2, 3],
+#  [2, 1, 0, 1, 2],
+#  [3, 2, 1, 0, 1],
+#  [4, 3, 2, 1, 0]]
+''',
+        },
+        {
+            "spec": r'''
+### Exercise 4: `outer_angles(positions, freqs)`
+
+Build the table of rotation angles used by RoPE: `angles[p, k] = positions[p] * freqs[k]`.
+
+- `positions`: `(S,)` float
+- `freqs`: `(F,)` float
+- returns: `(S, F)`
+
+*This is the `angles = pos * freqs` line of #24 RoPE.*
+''',
+            "stub": r'''
+def outer_angles(positions: torch.Tensor, freqs: torch.Tensor) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def outer_angles(positions: torch.Tensor, freqs: torch.Tensor) -> torch.Tensor:
+    return positions[:, None] * freqs[None, :]
+''',
+            "debug": r'''
+pos = torch.arange(4).float()
+freqs = 1.0 / (10000 ** (torch.arange(0, 8, 2).float() / 8))
+ang = outer_angles(pos, freqs)
+print(ang.shape)   # expect torch.Size([4, 4])
+print(ang)
+''',
+        },
+        {
+            "spec": r'''
+### Exercise 5: `pairwise_sq_dists(a, b)`
+
+Compute squared Euclidean distances between **every** row of `a` and **every** row of `b`.
+
+- `a`: `(N, D)`
+- `b`: `(M, D)`
+- returns: `(N, M)` where `out[i, j] = sum_d (a[i, d] - b[j, d])**2`
+
+*Hint: you need a 3-D intermediate of shape `(N, M, D)`.*
+''',
+            "stub": r'''
+def pairwise_sq_dists(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    pass  # Replace this
+''',
+            "solution": r'''
+def pairwise_sq_dists(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    diff = a[:, None, :] - b[None, :, :]   # (N, M, D)
+    return (diff ** 2).sum(dim=-1)
+''',
+            "debug": r'''
+a = torch.tensor([[0., 0.], [1., 1.]])
+b = torch.tensor([[0., 0.], [3., 4.], [1., 0.]])
+print(pairwise_sq_dists(a, b))
+# Expected:
+# [[ 0., 25.,  1.],
+#  [ 2., 13.,  1.]]
+''',
+        },
+    ],
+    # Problem number -> what it reuses from this notebook ("What this unlocks" section)
+    "unlocks": [
+        (4, "`gamma * x_norm + beta` broadcasts per-feature params over the batch; `keepdim=True` stats broadcast back"),
+        (8, "Dividing by a `(..., 1)` RMS and scaling by a `(D,)` weight"),
+        (7, "Per-feature batch statistics `(D,)` broadcast across the batch dim"),
+        (9, "The causal mask is an outer comparison of positions (lesson §3)"),
+        (11, "`abs_distance_matrix`: mask every key more than `window_size` positions away, i.e. `abs(i - j) > window_size`"),
+        (22, "`add_channel_bias`: the final `out + bias.view(1, -1, 1, 1)`"),
+        (24, "`outer_angles`: the `pos * freqs` table of rotation angles"),
+        (28, "`scale_rows`: each token's expert output times its routing weight"),
+        (40, "The `(N,)` vs `(N, 1)` trap: `layer(X)` is `(N, 1)`, the target is `(N,)`"),
+    ],
+}

@@ -69,5 +69,5 @@ Both reference solutions are plain Python classes (`self.weight` tensors with `r
 ## 🔧 Prerequisite-track follow-ups
 
 - **PyPI release:** Colab installs `torch-judge` from PyPI, so `check("p02_broadcasting")` and the other prerequisite tasks only work in Colab after the next release.
-- **Notebook generator:** the prerequisite notebooks and `LEARNING_PATH.md` were generated from one script so the unlock data stays consistent. Commit it under `scripts/` before building P1, P3, P4 and P6–P10.
+- ~~**Notebook generator:** commit the scratch generator.~~ Done: `scripts/prereqs/` with `make prereqs` / `make prereqs-verify`.
 - **Web UI:** the new "Prereq" difficulty group and badge color in `web/src/app/page.tsx` have not been checked in a browser yet.

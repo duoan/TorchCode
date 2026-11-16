@@ -37,10 +37,21 @@ Issues found while building this curriculum (a toolbar bug, statement inaccuraci
 
 ## Adding a prerequisite notebook
 
-1. Add `torch_judge/tasks/pXX_<topic>.py` with `difficulty: "Prereq"`, `order: XX`, and every exercise listed in `function_names` (`function_name` is the first entry). Tests reference the user functions by name.
-2. Add `templates/00_pXX_<topic>.ipynb`: lesson cells, then for each exercise a spec cell, a `# ✏️ YOUR IMPLEMENTATION HERE` cell, and a debug cell, ending with `check("pXX_<topic>")`.
-3. Add the matching `solutions/00_pXX_<topic>_solution.ipynb`. It should pass the judge.
-4. Run `python scripts/add_colab_badges.py`, then update the table above, `LEARNING_PATH.md` (Track 0 table and "Builds on" column), the README, and `00_welcome.ipynb`.
-5. End the notebook with a **🔓 What this unlocks** section listing each problem that reuses the skill, what it reuses, and links.
+The prerequisite notebooks and `LEARNING_PATH.md` are **generated** from Python definitions in [`scripts/prereqs/`](scripts/prereqs/). Edit the definitions, not the generated files; the next build overwrites the generated files.
+
+| File | What it holds |
+|------|---------------|
+| `scripts/prereqs/content/pXX_<topic>.py` | One `NOTEBOOK` dict: intro, lesson cells, exercises (spec, stub, solution, debug cell), and the "What this unlocks" rows |
+| `scripts/prereqs/curriculum.py` | The P1–P10 list (with planned unlocks for prerequisites without a notebook yet) and the module order of the 41 problems |
+| `scripts/prereqs/build.py` | Renders the template and solution notebooks and `LEARNING_PATH.md` |
+| `scripts/prereqs/verify.py` | Runs the judge: solutions must pass every test, blank stubs must pass none |
+
+Steps:
+
+1. Write the judge task `torch_judge/tasks/pXX_<topic>.py` by hand, with `difficulty: "Prereq"`, `order: XX`, and every exercise in `function_names` (`function_name` is the first entry). Tests call the user functions by name. Any timing test must also check that the outputs are tensors, so blank stubs don't pass it.
+2. Add `scripts/prereqs/content/pXX_<topic>.py` (copy an existing one). Set `prereq_id` to match the entry in `curriculum.py`.
+3. Run `make prereqs` to generate `templates/00_pXX_<topic>.ipynb`, `solutions/00_pXX_<topic>_solution.ipynb`, and the updated `LEARNING_PATH.md`.
+4. Run `make prereqs-verify` (needs PyTorch; a CPU build in `.venv` is enough). It fails if any generated file is stale, a solution fails a test, or a blank stub passes one.
+5. Update the Track 0 table above, the README's prerequisites table, and `00_welcome.ipynb`. These are still edited by hand.
 
 > **Colab note:** Colab installs `torch-judge` from PyPI, so new prerequisite tasks only work there after the next PyPI release.

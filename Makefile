@@ -15,7 +15,7 @@ CONTAINER ?= $(shell \
 		echo "docker"; \
 	fi)
 
-.PHONY: run run-build stop clean setup-local badges
+.PHONY: run run-build stop clean setup-local badges prereqs prereqs-check prereqs-verify
 
 run:
 	@echo "Using compose backend: $(COMPOSE)"
@@ -69,3 +69,15 @@ setup-local:
 
 badges:
 	python scripts/add_colab_badges.py
+
+# Prerequisite notebooks + LEARNING_PATH.md are generated from scripts/prereqs/
+PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
+
+prereqs:
+	$(PYTHON) scripts/prereqs/build.py
+
+prereqs-check:
+	$(PYTHON) scripts/prereqs/build.py --check
+
+prereqs-verify: prereqs-check
+	$(PYTHON) scripts/prereqs/verify.py
